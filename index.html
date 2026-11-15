@@ -53,6 +53,8 @@
     .modeleActif { color: var(--muted); font-size: .8rem; margin: -2px 0 4px 44px; }
     .conso { color: var(--muted); font-size: .8rem; margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 6px; }
     .notice:empty { display: none; }
+    /* Panneau « Vérifier les chiffres » masqué à la demande : les chiffres restent calculés et envoyés à l'IA */
+    #factsSection { display: none !important; }
     .piedPage { color: var(--muted); font-size: .75rem; text-align: center; margin: 20px 0 8px; }
     .notice { background: var(--warn-bg); color: var(--warn); padding: 8px 10px; border-radius: 6px; font-size: .9rem; }
     .error { background: var(--err-bg); color: var(--err); padding: 8px 10px; border-radius: 6px; }
@@ -69,7 +71,7 @@
     .quick button { margin-right: 6px; }
     .entete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
     .entete h1 { flex: 1 1 auto; }
-    .boutonsEntete { display: flex; gap: 8px; flex-wrap: wrap; }
+    .boutonsEntete { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
     .boutonsEntete button { margin-top: 0; white-space: nowrap; }
     /* Réglages : ouverts par le bouton « ⚙ Réglages » en haut à droite, invisibles quand ils sont fermés */
     #reglages > summary { display: none; }
@@ -78,6 +80,14 @@
     #reglages[open] { position: fixed; inset: 0; z-index: 50; margin: 0; border: none; border-radius: 0;
       overflow-y: auto; background: var(--bg); padding: 16px max(16px, calc((100% - 1000px) / 2)); }
     body.reglagesOuverts { overflow: hidden; }
+    /* Connexion aux données : page plein écran ouverte par le bouton « Connexion » en haut */
+    #pageConnexion { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--bg);
+      padding: 16px max(16px, calc((100% - 1000px) / 2)); }
+    #pageConnexion[hidden] { display: none; }
+    #pageConnexion .ok { margin-top: 18px; text-align: right; }
+    .blocConnexion { display: flex; flex-direction: column; align-items: flex-end; }
+    .compteEntete { font-size: .78rem; color: var(--muted); margin-top: 3px; max-width: 260px; text-align: right; overflow-wrap: anywhere; }
+    .compteEntete:empty { display: none; }
     .titreReglages { display: flex; justify-content: space-between; align-items: center; }
     .titreReglages h2 { margin: 0; }
     .titreReglages button { margin-top: 0; }
@@ -122,6 +132,10 @@
   </h1>
   <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
   <div class="boutonsEntete">
+    <div class="blocConnexion">
+      <button id="btnConnexion" class="secondary" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
+      <span class="compteEntete" id="compteEntete"></span>
+    </div>
     <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
     <button id="btnAdmin" class="secondary" title="Accès responsable du service">📊 Diagnostic des irritants</button>
   </div>
@@ -169,8 +183,10 @@
   </details>
 
   <!-- Les données sont lues dans le navigateur ; elles ne partent nulle part ailleurs qu'au modèle d'IA -->
-  <section>
-    <h2>Connexion à vos données</h2>
+  <section id="pageConnexion" hidden>
+    <div class="titreReglages">
+      <h2>🔌 Connexion à vos données</h2>
+    </div>
     <div class="connexion">
       <button id="btnGoogle">Se connecter avec Google (Gmail et Google Drive)</button>
       <span id="etatGoogle" class="badge deconnecte" role="status"></span>
@@ -187,6 +203,7 @@
       <label for="mails">Mails (facultatif) : fichiers .eml ou archives .zip qui en contiennent</label>
       <input type="file" id="mails" accept=".eml,.zip" multiple>
     </details>
+    <div class="ok"><button id="okConnexion">OK</button></div>
   </section>
 
   <!-- Connexion responsable SIMULÉE : la page est publique, ce n'est pas une protection réelle -->
@@ -249,7 +266,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.23 · 15/11/2026</span></p>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.25 · 15/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

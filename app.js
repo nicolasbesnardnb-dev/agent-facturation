@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.23 · 15/11/2026";
+const VERSION = "v0.25 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -335,7 +335,27 @@ $("reglages").addEventListener("toggle", () => {
   document.body.classList.toggle("reglagesOuverts", $("reglages").open); // la page derrière ne défile plus
   if ($("reglages").open) $("reglages").scrollTop = 0;
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("reglages").open) $("reglages").open = false; });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if ($("reglages").open) $("reglages").open = false;
+  else if (!$("pageConnexion").hidden) fermerConnexion();
+});
+
+// Page « Connexion à vos données » : plein écran, ouverte par le bouton « Connexion », refermée par « OK » ou Échap.
+function ouvrirConnexion() {
+  $("pageConnexion").hidden = false; $("pageConnexion").scrollTop = 0;
+  document.body.classList.add("reglagesOuverts");
+}
+function fermerConnexion() {
+  $("pageConnexion").hidden = true;
+  document.body.classList.remove("reglagesOuverts");
+}
+$("okConnexion").addEventListener("click", fermerConnexion);
+// Bouton du haut : « Connexion » ouvre la page ; une fois connecté à Google, il devient « Déconnexion ».
+$("btnConnexion").addEventListener("click", () => {
+  if (jetonGoogle || etat.compteGoogle) $("btnDeconnexion").click();
+  else ouvrirConnexion();
+});
 
 // Entêtes d'accès au fournisseur (la clé sert de badge).
 function entetesFournisseur(fournisseur, cle) {
@@ -383,6 +403,7 @@ function chargerClasseur(octets, nom) {
   afficherFaits(etat.faits);
   majBoutons();
   $("fileStatus").textContent = `Référentiel : ${nom}`;
+  if (!jetonGoogle) majBoutonConnexion("deconnecte"); // chargement depuis l'ordinateur
 }
 
 // Mode allégé : les contrats + seulement les lignes du journal des contrats en anomalie.
@@ -649,13 +670,27 @@ function afficherEtatGoogle(etatConnexion, texte) {
   badge.innerHTML = svg; // icône fixe, écrite dans ce fichier
   badge.append(document.createTextNode(texte)); // le nom du compte est inséré comme texte, jamais comme HTML
   $("btnDeconnexion").hidden = etatConnexion === "deconnecte";
+  majBoutonConnexion(etatConnexion);
+}
+
+// Libellé du bouton du haut et nom du compte affiché dessous.
+let nomCompteGoogle = "";
+function majBoutonConnexion(etatConnexion) {
+  const connecte = etatConnexion !== "deconnecte";
+  $("btnConnexion").textContent = connecte ? "🔌 Déconnexion" : "🔌 Connexion";
+  $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées et la conversation" : "Connexion à Gmail et Google Drive";
+  let texte = "";
+  if (etatConnexion === "connecte") texte = nomCompteGoogle || etat.compteGoogle;
+  else if (etatConnexion === "expire") texte = (nomCompteGoogle || etat.compteGoogle) + " · connexion expirée";
+  else if (etat.classeur) texte = "Fichiers chargés depuis l'ordinateur";
+  $("compteEntete").textContent = texte;
 }
 
 // Déconnexion : la page oublie l'accès Google et efface les données chargées depuis Google et la conversation.
 $("btnDeconnexion").addEventListener("click", () => {
   jetonGoogle = null;
   clearTimeout(minuteurExpiration);
-  etat.compteGoogle = ""; etat.sheetId = null; etat.mails = []; etat.faits = null;
+  etat.compteGoogle = ""; nomCompteGoogle = ""; etat.sheetId = null; etat.mails = []; etat.faits = null;
   etat.donneesTexte = ""; etat.donneesLegeres = ""; etat.historique = []; etat.appliquees = new Set();
   $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = "";
   $("factsSection").hidden = true; $("factsResume").replaceChildren(); $("facts").replaceChildren();
@@ -725,6 +760,7 @@ async function chargerDepuisGoogle() {
   etat.compteGoogle = profil.emailAddress;
   let nom = "";
   try { nom = (await google_get("https://www.googleapis.com/oauth2/v3/userinfo")).name || ""; } catch (e) { /* le nom est facultatif */ }
+  nomCompteGoogle = nom || profil.emailAddress;
   afficherEtatGoogle("connecte", "Connecté · " + (nom ? `${nom} (${profil.emailAddress})` : profil.emailAddress));
   $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Recherche du référentiel sur Drive…`;
   await chargerReferentielDrive();
