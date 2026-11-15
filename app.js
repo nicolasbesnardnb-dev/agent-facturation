@@ -74,7 +74,8 @@ const CONTEXTE_APPLICATION = `Contexte de cette application (version 1)
 - Ces faits reflètent le référentiel seul, avant lecture des mails. Quand les mails changent la situation (montant débloqué, réponse reçue, absence), garde le chiffre du référentiel et ajoute à part ce que les mails changent, avec leur source. Exemple de forme : « N € non facturés selon le référentiel, dont X € débloqués d'après le mail de [expéditeur] du [date] ». Additionne seulement des montants qui figurent dans les faits calculés.
 
 Forme de chaque réponse (elle est lue à l'écran pendant une démonstration)
-- Commence TOUJOURS par une section « En bref » : 3 lignes au maximum, les faits les plus importants et l'action prioritaire. Ensuite seulement, le détail (tableaux, explications, brouillons).
+- Commence par une section « En bref » : 3 lignes au maximum, les faits les plus importants et l'action prioritaire. Ensuite seulement, le détail (tableaux, explications, brouillons).
+- Exception : pour une question courte sans rapport avec la facturation (salutation, « ça va ? »…), pas de « En bref » ni de tableau. Réponds en une ou deux phrases et rappelle ce que tu peux faire (point du jour, CRA manquants, mise à jour du référentiel).
 - La précision sur la copie exportée des mails va en dernière ligne de la réponse, en italique, et pas en tête.
 
 Quand on te demande « les CRA manquants »
@@ -123,7 +124,7 @@ Règles :
 - Si on te demande d'aller au-delà du rapprochement, réponds que ce n'est pas dans ton périmètre.
 Point du jour : commence par un tableau Contrat | Type d'anomalie | Montant (€ HT) | Action proposée | Destinataire, regroupé par contrat et trié par montant décroissant ; puis 1 à 2 lignes par contrat (cause, action) ; puis la synthèse (totaux des faits calculés, nombre d'anomalies par type, 3 actions prioritaires) ; puis « Irritants récurrents » en 3 points maximum.
 CRA manquants : tableau Consultant | Contrat | Manager | Montant ESTIMÉ | Relances au journal | Action ; si les relances au consultant sont restées sans effet et que le manager a été alerté, propose une action auprès du manager.
-Commence toujours par « En bref » en 3 lignes au maximum.
+Commence par « En bref » en 3 lignes au maximum, sauf pour une question sans rapport avec la facturation : réponds alors en une ou deux phrases.
 Réponds en français, en Markdown, de façon factuelle et concise : 500 mots au maximum.`;
 
 // ---------- 2. Réglages par défaut des fournisseurs ----------
@@ -986,4 +987,8 @@ $("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").
 chargerReglages();
 
 // Ouverte depuis l'ordinateur (file://), la page ne peut pas se connecter à Google : on montre le chargement local.
-if (location.protocol === "file:") $("local").open = true;
+if (location.protocol === "file:") {
+  $("local").open = true;
+  $("btnGoogle").disabled = true;
+  $("googleStatus").textContent = "Page ouverte depuis l'ordinateur : la connexion Google ne fonctionne que sur la page en ligne. Chargez les fichiers ci-dessous.";
+}

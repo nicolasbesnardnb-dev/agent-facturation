@@ -21,7 +21,10 @@
     body { margin: 0; background: var(--bg); color: var(--text);
       font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     main { max-width: 1000px; margin: 0 auto; padding: 16px; }
-    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+    h1 svg { flex: none; color: var(--accent); }
+    .envoi { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    button.discret { background: transparent; border-color: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; padding: 4px 6px; }
     .sub { color: var(--muted); margin: 0 0 16px; }
     section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
       padding: 14px; margin-bottom: 14px; }
@@ -67,7 +70,16 @@
 </head>
 <body>
 <main>
-  <h1>Assistant du service facturation</h1>
+  <h1>
+    <!-- Pictogramme original : une facture avec une coche -->
+    <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3h11l6 6v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+      <path d="M19 3v6h6"/>
+      <path d="M11 13h7M11 17h5"/>
+      <path d="M12 23l3 3 6-7"/>
+    </svg>
+    Assistant du service facturation
+  </h1>
   <p class="sub">Rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
@@ -116,17 +128,19 @@
 
   <!-- La conversation -->
   <section>
-    <h2>La conversation</h2>
+    <h2>Que souhaitez-vous faire ?</h2>
     <div class="quick">
       <button id="btnPoint">Le point du jour</button>
       <button id="btnCRA" class="secondary">Relancer les CRA manquants</button>
       <button id="btnRegles" class="secondary">Mettre à jour le référentiel</button>
-      <button id="btnReset" class="secondary">Nouvelle conversation</button>
     </div>
     <div id="chat" style="margin-top:12px"></div>
     <label for="question">Votre question</label>
     <textarea id="question" placeholder="Ex. : pourquoi le contrat CT-2026-005 est-il en dépassement ?"></textarea>
-    <button id="send">Envoyer</button>
+    <div class="envoi">
+      <button id="send">Envoyer</button>
+      <button id="btnReset" class="discret" title="Efface les échanges ; les données chargées restent">Effacer la conversation</button>
+    </div>
     <div class="status" id="sendStatus"></div>
   </section>
 
