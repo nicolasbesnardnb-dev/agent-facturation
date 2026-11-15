@@ -133,7 +133,7 @@
   <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
   <div class="boutonsEntete">
     <div class="blocConnexion">
-      <button id="btnConnexion" class="secondary" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
+      <button id="btnConnexion" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
       <span class="compteEntete" id="compteEntete"></span>
     </div>
     <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
@@ -143,7 +143,7 @@
   <p class="modeleActif" id="modeleActif"></p>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé<br>L'assistant propose, le chargé de facturation décide.</p>
 
-  <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
+  <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Ouverts seulement par le bouton (ou si une question est posée sans clé). -->
   <details class="panel" id="reglages">
     <summary>⚙ Réglages (modèle d'IA et clé)</summary>
     <div class="titreReglages">
@@ -266,7 +266,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.27 · 15/11/2026</span></p>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.28 · 15/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

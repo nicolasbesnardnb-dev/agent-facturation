@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.27 · 15/11/2026";
+const VERSION = "v0.28 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -278,7 +278,6 @@ function afficherEtatCle() {
   $("keyStatus").textContent = cle
     ? "Une clé est enregistrée dans ce navigateur pour ce fournisseur."
     : "Aucune clé enregistrée pour ce fournisseur.";
-  if (!cle) $("reglages").open = true; // sans clé, on ouvre les réglages
   majBoutonCle();
 }
 // « Enregistrer la clé » n'est bleu (et cliquable) que si le champ contient au moins un caractère.
@@ -686,6 +685,8 @@ let nomCompteGoogle = "";
 function majBoutonConnexion(etatConnexion) {
   const connecte = etatConnexion !== "deconnecte";
   $("btnConnexion").textContent = connecte ? "🔌 Déconnexion" : "🔌 Connexion";
+  // Bleu tant qu'aucune donnée n'est chargée : c'est la première chose à faire.
+  $("btnConnexion").classList.toggle("secondary", connecte || !!etat.classeur);
   $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées et la conversation" : "Connexion à Gmail et Google Drive";
   let texte = "";
   if (etatConnexion === "connecte") texte = nomCompteGoogle || etat.compteGoogle;
