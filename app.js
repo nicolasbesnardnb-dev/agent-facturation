@@ -160,11 +160,31 @@ const FOURNISSEURS = {
   claude: {
     modele: "claude-opus-5-5",
     adresse: "https://api.anthropic.com/v1/messages",
+    modeles: "https://api.anthropic.com/v1/models?limit=100",
   },
   groq: {
     // Nom à vérifier sur console.groq.com : la liste des modèles change souvent.
     modele: "openai/gpt-oss-120b",
     adresse: "https://api.groq.com/openai/v1/chat/completions",
+    modeles: "https://api.groq.com/openai/v1/models",
+  },
+  // Fournisseurs EXPÉRIMENTAUX (non testés en réel) : même format d'échange que Groq (« compatible OpenAI »).
+  // Pas de modèle prérempli : les noms changent souvent, on les charge avec « Actualiser la liste ».
+  // À vérifier : chaque fournisseur doit accepter les appels venant directement d'une page web (CORS).
+  openai: {
+    modele: "",
+    adresse: "https://api.openai.com/v1/chat/completions",
+    modeles: "https://api.openai.com/v1/models",
+  },
+  gemini: {
+    modele: "",
+    adresse: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    modeles: "https://generativelanguage.googleapis.com/v1beta/openai/models",
+  },
+  mistral: {
+    modele: "",
+    adresse: "https://api.mistral.ai/v1/chat/completions",
+    modeles: "https://api.mistral.ai/v1/models",
   },
 };
 
@@ -184,7 +204,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.14 · 15/11/2026";
+const VERSION = "v0.15 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -207,11 +227,13 @@ const MODELES_PROPOSES = {
     { id: "claude-haiku-5-5", nom: "Claude Haiku 5.5 : le plus rapide et le moins cher" },
   ],
   groq: [{ id: "openai/gpt-oss-120b", nom: "GPT-OSS 120B (Groq)" }],
+  openai: [], gemini: [], mistral: [],
 };
 // Remplit la liste déroulante ; le modèle choisi reste sélectionné même s'il n'est pas dans la liste.
 function remplirModeles(modeles, choisi) {
   const liste = modeles.slice();
   if (choisi && !liste.some((m) => m.id === choisi)) liste.unshift({ id: choisi, nom: choisi });
+  if (!liste.length) liste.push({ id: "", nom: "Enregistrez la clé puis cliquez sur « Actualiser la liste »" });
   $("model").replaceChildren(...liste.map((m) => {
     const o = document.createElement("option"); o.value = m.id; o.textContent = m.nom; return o;
   }));
@@ -232,7 +254,9 @@ function afficherModeAllege() {
   if ($("mailsNotice")) afficherNoticeMails();
   $("modelStatus").textContent = $("provider").value === "groq"
     ? "Mode allégé : avec Groq gratuit, la page envoie des instructions résumées et une partie des données seulement, pour rester sous la limite de 8 000 tokens par minute. Réponses plus courtes."
-    : "";
+    : ["openai", "gemini", "mistral"].includes($("provider").value)
+      ? "Fournisseur expérimental, pas encore testé en réel : enregistrez la clé, cliquez sur « Actualiser la liste », choisissez un modèle, puis faites un essai. Réponse affichée d'un seul bloc."
+      : "";
 }
 
 function afficherEtatCle() {
@@ -258,14 +282,17 @@ $("listModels").addEventListener("click", async () => {
   if (!cle) { $("modelStatus").textContent = "Enregistrez d'abord votre clé (ci-dessous)."; return; }
   $("modelStatus").textContent = "Recherche des modèles…";
   try {
-    const adresse = fournisseur === "claude" ? "https://api.anthropic.com/v1/models?limit=100" : "https://api.groq.com/openai/v1/models";
+    const adresse = FOURNISSEURS[fournisseur].modeles;
     const entetes = fournisseur === "claude"
       ? { "x-api-key": cle, "anthropic-version": "2026-10-21", "anthropic-dangerous-direct-browser-access": "true" }
       : { "authorization": "Bearer " + cle };
     const reponse = await fetch(adresse, { headers: entetes });
     const donnees = await lireJson(reponse);
     if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
-    const modeles = (donnees.data || []).map((m) => ({ id: m.id, nom: m.display_name ? m.display_name + " (" + m.id + ")" : m.id }))
+    const modeles = (donnees.data || []).map((m) => {
+      const id = String(m.id).replace(/^models\//, ""); // Gemini préfixe ses noms par « models/ »
+      return { id, nom: m.display_name ? m.display_name + " (" + id + ")" : id };
+    })
       .sort((a, b) => a.id.localeCompare(b.id));
     if (!modeles.length) { $("modelStatus").textContent = "Aucun modèle renvoyé par le fournisseur."; return; }
     remplirModeles(modeles, $("model").value);
@@ -772,6 +799,7 @@ async function appelerModele(surMorceau, options = {}) {
   const modele = $("model").value.trim() || FOURNISSEURS[fournisseur].modele;
   const cle = memoire.lire(cleStockage());
   if (!cle) { $("reglages").open = true; throw new Error("Aucune clé enregistrée. Ouvrez « ⚙ Réglages », collez votre clé puis cliquez sur « Enregistrer la clé »."); }
+  if (!modele) { $("reglages").open = true; throw new Error("Aucun modèle choisi. Ouvrez « ⚙ Réglages », cliquez sur « Actualiser la liste » puis choisissez un modèle."); }
   const systeme = options.systeme || messageSysteme();
   const messages = options.messages || etat.historique;
 
@@ -800,6 +828,25 @@ async function appelerModele(surMorceau, options = {}) {
     const { texte, arret } = await lireFlux(reponse, surMorceau);
     if (arret === "refusal") throw new Error("Le modèle a refusé de répondre à cette demande.");
     return texte + (arret === "max_tokens" ? "\n\n*(Réponse coupée : limite de longueur atteinte. Demandez la suite.)*" : "");
+  }
+
+  // ChatGPT, Gemini, Mistral (expérimental) : format « OpenAI », instructions et données complètes, réponse d'un seul bloc.
+  if (fournisseur !== "groq") {
+    try {
+      reponse = await fetch(FOURNISSEURS[fournisseur].adresse, {
+        method: "POST",
+        headers: { "content-type": "application/json", "authorization": "Bearer " + cle },
+        body: JSON.stringify({ model: modele, messages: [{ role: "system", content: systeme }, ...messages] }),
+      });
+    } catch (e) {
+      throw new Error("Appel impossible depuis la page : ce fournisseur refuse peut-être les appels venant directement d'un navigateur (CORS). Détail : " + e.message);
+    }
+    donnees = await lireJson(reponse);
+    if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
+    const choix = (donnees.choices || [])[0] || {};
+    const texte = (choix.message && choix.message.content) || "";
+    if (!texte) throw new Error("Réponse vide du fournisseur.");
+    return texte + (choix.finish_reason === "length" ? "\n\n*(Réponse coupée : limite de longueur atteinte. Demandez la suite.)*" : "");
   }
 
   // Groq : format compatible « OpenAI »
