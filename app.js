@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.18 · 15/11/2026";
+const VERSION = "v0.19 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -316,11 +316,14 @@ $("forgetKey").addEventListener("click", () => {
 });
 
 // Bouton « ⚙ Réglages » en haut à droite : ouvre ou ferme le panneau.
-$("btnReglages").addEventListener("click", () => {
-  $("reglages").open = !$("reglages").open;
-  if ($("reglages").open) $("reglages").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+// Ouverts, ils s'affichent en plein écran comme une page à part ; « ← Retour » ou la touche Échap les ferment.
+$("btnReglages").addEventListener("click", () => { $("reglages").open = true; });
 $("fermerReglages").addEventListener("click", () => { $("reglages").open = false; });
+$("reglages").addEventListener("toggle", () => {
+  document.body.classList.toggle("reglagesOuverts", $("reglages").open); // la page derrière ne défile plus
+  if ($("reglages").open) $("reglages").scrollTop = 0;
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("reglages").open) $("reglages").open = false; });
 
 // Entêtes d'accès au fournisseur (la clé sert de badge).
 function entetesFournisseur(fournisseur, cle) {
