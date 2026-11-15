@@ -135,10 +135,11 @@ const AGENTS_CONNUS = [
 
 // Instructions de l'onglet « Diagnostic des irritants ».
 const INSTRUCTIONS_DIAGNOSTIC = `Tu es un analyste des processus du service facturation d'une société de conseil en ingénierie. Les données sont fictives (démonstration).
-Ta mission : à partir des « SIGNAUX MESURÉS PAR LE PROGRAMME » et des onglets fournis, identifier les principaux irritants du service (tâches manuelles répétitives, relances sans effet, erreurs récurrentes, charge mal répartie…) et proposer des agents d'IA pour y remédier.
+Ta mission : lire toi-même les onglets du référentiel fournis (journal d'activité, factures, réalisé, contrats…), y repérer les principaux irritants du service (tâches manuelles répétitives, relances sans effet, erreurs récurrentes, validations qui traînent, charge mal répartie…) et proposer des agents d'IA pour y remédier. Personne n'a fait ce travail avant toi : c'est à toi de trouver ce qui pose problème.
 
 Règles
-- Reprends les chiffres des signaux tels quels, sans les recalculer. N'invente aucune donnée.
+- Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
+- Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
 - Toute estimation (temps passé, montant) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
 - Agents déjà connus, avec un statut fixé que tu reprends exactement :
@@ -149,7 +150,7 @@ Format de la réponse (lue à l'écran pendant une démonstration)
 ## En bref
 3 lignes au maximum.
 ## Irritants
-Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence mesurée | Qui est touché | Impact estimé (hypothèse) | Agent proposé | Statut. Priorité 1 = la plus haute.
+Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact estimé (hypothèse) | Agent proposé | Statut. Priorité 1 = la plus haute.
 ## Prochain agent à construire
 Une fiche pour l'agent le plus prioritaire dont le statut n'est PAS « Implémenté » : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
 Réponds en français, en Markdown, en 450 mots au maximum.`;
@@ -178,13 +179,12 @@ const etat = {
   compteGoogle: "",   // adresse du compte Google connecté
   appliquees: new Set(), // modifications déjà validées (pour ne pas les appliquer deux fois)
   classeur: null,     // le référentiel lu (pour le diagnostic)
-  signaux: null,      // signaux mesurés par le programme pour le diagnostic
 };
 
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.9 · 15/11/2026";
+const VERSION = "v0.10 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -283,8 +283,6 @@ $("file").addEventListener("change", async (ev) => {
 function chargerClasseur(octets, nom) {
   const classeur = XLSX.read(octets, { type: "array", cellDates: true });
   etat.classeur = classeur;
-  etat.signaux = calculerSignaux(classeur);
-  afficherSignaux(etat.signaux);
   etat.donneesTexte = classeurEnTexte(classeur);
   etat.donneesLegeres = donneesAllegees(classeur);
   etat.faits = calculerFaits(classeur);
@@ -320,97 +318,11 @@ function classeurEnTexte(classeur) {
   }).join("\n\n");
 }
 
-// ---------- 5 bis. Signaux mesurés pour le diagnostic (sans IA) ----------
-const MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-const jour = (d) => (d instanceof Date ? d.toLocaleDateString("fr-FR") : String(d));
-
-function calculerSignaux(classeur) {
-  const lire = (nom) => (classeur.Sheets[nom] ? XLSX.utils.sheet_to_json(classeur.Sheets[nom], { defval: "" }) : []);
-  const journal = lire("Journal_activité").filter((l) => l["Date"] instanceof Date);
-  const factures = lire("Factures");
-  const realise = lire("Réalisé");
-
-  // Relances : on regroupe les lignes qui ont la même date, le même objet et le même destinataire
-  // (le journal note parfois une ligne par consultant pour un seul mail).
-  const distinctes = new Map();
-  journal.filter((l) => l["Action"] === "Relance mail").forEach((l) => {
-    const detail = String(l["Détail"]);
-    const categorie = /compte rendu|CRA/i.test(detail) ? "CRA" : /manager/i.test(detail) ? "manager" : "BC";
-    const m = detail.match(/[Rr]elance (?:au manager |à )([^(:]+?)\s*[(:]/);
-    const qui = m ? m[1].trim() : String(l["Contrat"]);
-    const cle = `${l["Date"].toISOString().slice(0, 10)}|${categorie}|${qui}`;
-    if (!distinctes.has(cle)) distinctes.set(cle, { date: l["Date"], categorie, qui });
-  });
-  const relances = [...distinctes.values()];
-  const dates = relances.map((r) => r.date.getTime());
-  const fin = dates.length ? new Date(Math.max(...dates)) : null;
-  const compterPar = (liste, cle) => liste.reduce((acc, x) => { acc[x[cle]] = (acc[x[cle]] || 0) + 1; return acc; }, {});
-  const exports = journal.filter((l) => l["Action"] === "Export Excel manuel");
-  const facturation = journal.filter((l) => /facturation/i.test(l["Acteur"]));
-  return {
-    relances: {
-      total: relances.length,
-      debut: dates.length ? new Date(Math.min(...dates)) : null, fin,
-      dernierMois: fin ? relances.filter((r) => r.date.getMonth() === fin.getMonth() && r.date.getFullYear() === fin.getFullYear()).length : 0,
-      nomDernierMois: fin ? MOIS_FR[fin.getMonth()] : "",
-      cra: compterPar(relances.filter((r) => r.categorie === "CRA"), "qui"),
-      manager: compterPar(relances.filter((r) => r.categorie === "manager"), "qui"),
-      bc: relances.filter((r) => r.categorie === "BC").length,
-    },
-    exports: { total: exports.length, mois: [...new Set(exports.map((l) => MOIS_FR[l["Date"].getMonth()]))], acteurs: [...new Set(exports.map((l) => l["Acteur"]))] },
-    copilot: journal.filter((l) => l["Action"] === "Question Copilot").map((l) => String(l["Détail"])),
-    rejets: compterPar(factures.filter((f) => /^Rejet/i.test(f["Statut"])), "Motif rejet"),
-    attenteValidation: realise.filter((r) => r["Statut validation"] && r["Statut validation"] !== "Validé").length,
-    charge: compterPar(facturation, "Acteur"),
-  };
-}
-
-// Les signaux en phrases (affichées à l'écran et envoyées à l'IA).
-function signauxEnLignes(sg) {
-  const r = sg.relances;
-  const liste = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([qui, n]) => `${qui} ${n} fois`).join(", ");
-  const nbCRA = Object.values(r.cra).reduce((a, b) => a + b, 0);
-  const nbMgr = Object.values(r.manager).reduce((a, b) => a + b, 0);
-  const lignes = [];
-  lignes.push({ titre: `Relances notées au journal d'activité : ${r.total} relances${r.debut ? ` entre le ${jour(r.debut)} et le ${jour(r.fin)}` : ""}${r.dernierMois ? `, dont ${r.dernierMois} en ${r.nomDernierMois}` : ""}`, puces: [
-    nbCRA ? `${nbCRA} pour des CRA non reçus, à ${Object.keys(r.cra).length} consultant${Object.keys(r.cra).length > 1 ? "s" : ""} : ${liste(r.cra)}` : "",
-    nbMgr ? `${nbMgr} au manager ${Object.keys(r.manager).join(", ")} pour du réalisé non validé` : "",
-    r.bc ? `${r.bc} pour un bon de commande manquant` : "",
-  ].filter(Boolean) });
-  if (sg.exports.total) lignes.push({ titre: `Exports Excel manuels : ${sg.exports.total}, de ${sg.exports.mois[0]} à ${sg.exports.mois[sg.exports.mois.length - 1]} (${sg.exports.acteurs.join(", ")})` });
-  if (sg.copilot.length) lignes.push({ titre: `Questions posées à Copilot : ${sg.copilot.length}`, puces: sg.copilot });
-  const motifs = Object.entries(sg.rejets);
-  if (motifs.length) lignes.push({ titre: `Factures rejetées : ${motifs.reduce((a, [, n]) => a + n, 0)}`, puces: motifs.map(([m, n]) => `${n} pour « ${m || "motif non précisé"} »`) });
-  if (sg.attenteValidation) lignes.push({ titre: `Réalisé en attente de validation par le manager : ${sg.attenteValidation} ligne${sg.attenteValidation > 1 ? "s" : ""}` });
-  const charge = Object.entries(sg.charge).sort((a, b) => b[1] - a[1]);
-  if (charge.length) lignes.push({ titre: `Activité notée au journal par chargée de facturation : ${charge.map(([q, n]) => `${q.replace(/\s*\(facturation\)/, "")} ${n} actions`).join(", ")}` });
-  return lignes;
-}
-
-function signauxEnTexte(sg) {
-  return signauxEnLignes(sg).map((l) => "- " + l.titre + (l.puces ? "\n" + l.puces.map((p) => "  - " + p).join("\n") : "")).join("\n");
-}
-
-function afficherSignaux(sg) {
-  const bloc = document.createElement("div");
-  const titre = document.createElement("p");
-  titre.innerHTML = "<b>Signaux mesurés par le programme</b> (comptage, sans IA)";
-  const ul = document.createElement("ul");
-  signauxEnLignes(sg).forEach((l) => {
-    const li = document.createElement("li"); li.textContent = l.titre;
-    if (l.puces) { const sous = document.createElement("ul"); l.puces.forEach((p) => { const x = document.createElement("li"); x.textContent = p; sous.appendChild(x); }); li.appendChild(sous); }
-    ul.appendChild(li);
-  });
-  bloc.append(titre, ul);
-  $("signaux").replaceChildren(bloc);
-}
-
-// Données envoyées pour le diagnostic : les signaux et quelques onglets seulement (pas les mails, pas le Rapprochement).
+// Données envoyées pour le diagnostic : les onglets bruts du référentiel (pas les mails, pas le Rapprochement calculé).
 function systemeDiagnostic() {
-  const onglets = ["Contrats", "Consultants", "Factures", "Journal_activité", "Règles_de_contrôle"].filter((n) => etat.classeur.Sheets[n]);
+  const onglets = ["Contrats", "Consultants", "Réalisé", "Factures", "Journal_activité", "Règles_de_contrôle"].filter((n) => etat.classeur.Sheets[n]);
   return [
     INSTRUCTIONS_DIAGNOSTIC,
-    "## SIGNAUX MESURÉS PAR LE PROGRAMME\n" + signauxEnTexte(etat.signaux),
     "## ONGLETS DU RÉFÉRENTIEL\n" + classeurEnTexte({ SheetNames: onglets, Sheets: etat.classeur.Sheets }),
   ].join("\n\n");
 }
@@ -653,9 +565,8 @@ $("btnDeconnexion").addEventListener("click", () => {
   etat.donneesTexte = ""; etat.donneesLegeres = ""; etat.historique = []; etat.appliquees = new Set();
   $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = "";
   $("factsSection").hidden = true; $("factsResume").replaceChildren(); $("facts").replaceChildren();
-  etat.classeur = null; etat.signaux = null;
+  etat.classeur = null;
   majBoutons();
-  $("signaux").replaceChildren(Object.assign(document.createElement("p"), { className: "status", textContent: "Connectez-vous à vos données pour voir les signaux mesurés." }));
   $("diagResultat").replaceChildren(); $("diagResultat").hidden = true; $("diagStatus").textContent = "";
   $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
   $("fileStatus").textContent = "Aucun fichier chargé.";
@@ -1174,7 +1085,7 @@ $("ongletDiag").addEventListener("click", () => montrerOnglet("diag"));
 $("ongletAgent").addEventListener("click", () => montrerOnglet("agent"));
 
 $("btnDiag").addEventListener("click", async () => {
-  if (!etat.signaux) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
+  if (!etat.classeur) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
   const zone = $("diagResultat");
   basculer(true);
   const arreter = demarrerAttente($("diagStatus"), "L'assistant analyse les traces du référentiel…");

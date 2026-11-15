@@ -66,8 +66,6 @@
     .onglets { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 4px 0 14px; flex-wrap: wrap; }
     .onglet { background: transparent; color: var(--muted); border: none; border-bottom: 3px solid transparent; border-radius: 0; margin: 0 0 -2px; padding: 10px 14px; font-weight: 600; }
     .onglet.actif { color: var(--accent); border-bottom-color: var(--accent); }
-    .signaux ul { margin: 6px 0 10px; padding-left: 20px; }
-    .signaux li { margin: 2px 0; }
     .attente::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
       background: var(--accent); animation: pulse 1s ease-in-out infinite; vertical-align: middle; }
     @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.1); } }
@@ -97,7 +95,7 @@
       <path d="M12 23l3 3 6-7"/>
     </svg>
     Assistant du service facturation
-  <span class="version" id="version" title="Version de la page">v0.9 · 15/11/2026</span>
+  <span class="version" id="version" title="Version de la page">v0.10 · 15/11/2026</span>
   </h1>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
 
@@ -164,8 +162,7 @@
   <div id="vueDiag">
     <section>
       <h2>Qu'est-ce qui freine le service facturation ?</h2>
-      <p class="hint">L'IA analyse les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants et propose des agents pour y remédier. Données fictives.</p>
-      <div class="signaux" id="signaux"><p class="status">Connectez-vous à vos données pour voir les signaux mesurés.</p></div>
+      <p class="hint">L'IA lit elle-même les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants, les compte et propose des agents pour y remédier. Les mails ne sont pas utilisés. Données fictives.</p>
       <button id="btnDiag">Analyser les irritants</button>
       <p class="hint aideDonnees">Connectez-vous à vos données pour lancer l'analyse.</p>
       <div class="status" id="diagStatus"></div>
