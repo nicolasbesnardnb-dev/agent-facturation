@@ -127,6 +127,33 @@ CRA manquants : tableau Consultant | Contrat | Manager | Montant ESTIMÉ | Relan
 Commence par « En bref » en 3 lignes au maximum, sauf pour une question sans rapport avec la facturation : réponds alors en une ou deux phrases.
 Réponds en français, en Markdown, de façon factuelle et concise : 500 mots au maximum.`;
 
+// Agents déjà connus : leur statut est fixé ici, pour que l'IA ne l'invente pas.
+const AGENTS_CONNUS = [
+  { nom: "Agent facturation", statut: "Implémenté", role: "rapprochement vendu / réalisé / facturé, écarts de TJM, CRA manquants et brouillons de relance, mises à jour du référentiel validées par la chargée de facturation (onglet 2 de cette page)" },
+  { nom: "Agent de veille des mails facturation", statut: "Spécifié", role: "surveille la boîte du service facturation et signale les mails qui demandent une action (spécification rédigée, pas encore construit)" },
+];
+
+// Instructions de l'onglet « Diagnostic des irritants ».
+const INSTRUCTIONS_DIAGNOSTIC = `Tu es un analyste des processus du service facturation d'une société de conseil en ingénierie. Les données sont fictives (démonstration).
+Ta mission : à partir des « SIGNAUX MESURÉS PAR LE PROGRAMME » et des onglets fournis, identifier les principaux irritants du service (tâches manuelles répétitives, relances sans effet, erreurs récurrentes, charge mal répartie…) et proposer des agents d'IA pour y remédier.
+
+Règles
+- Reprends les chiffres des signaux tels quels, sans les recalculer. N'invente aucune donnée.
+- Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
+- Toute estimation (temps passé, montant) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
+- Agents déjà connus, avec un statut fixé que tu reprends exactement :
+${AGENTS_CONNUS.map((a) => `  - « ${a.nom} » — statut « ${a.statut} » — ${a.role}`).join("\n")}
+  Si un irritant est couvert par l'un d'eux, écris exactement son nom et son statut. Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
+
+Format de la réponse (lue à l'écran pendant une démonstration)
+## En bref
+3 lignes au maximum.
+## Irritants
+Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence mesurée | Qui est touché | Impact estimé (hypothèse) | Agent proposé | Statut. Priorité 1 = la plus haute.
+## Prochain agent à construire
+Une fiche pour l'agent le plus prioritaire dont le statut n'est PAS « Implémenté » : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
+Réponds en français, en Markdown, en 450 mots au maximum.`;
+
 // ---------- 2. Réglages par défaut des fournisseurs ----------
 const FOURNISSEURS = {
   claude: {
@@ -150,9 +177,19 @@ const etat = {
   sheetId: null,      // identifiant du Google Sheet, si le référentiel vient de Drive au format Google Sheets
   compteGoogle: "",   // adresse du compte Google connecté
   appliquees: new Set(), // modifications déjà validées (pour ne pas les appliquer deux fois)
+  classeur: null,     // le référentiel lu (pour le diagnostic)
+  signaux: null,      // signaux mesurés par le programme pour le diagnostic
 };
 
 const $ = (id) => document.getElementById(id);
+
+// Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
+const VERSION = "v0.8 · 15/11/2026";
+// Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
+if ($("version") && $("version").textContent.trim() !== VERSION) {
+  $("version").classList.add("decalee");
+  $("version").textContent = "page " + $("version").textContent.trim() + " / app.js " + VERSION + " : rechargez avec Ctrl+F5";
+}
 const memoire = {
   lire(cle) { try { return localStorage.getItem(cle); } catch (e) { return null; } },
   ecrire(cle, val) { try { localStorage.setItem(cle, val); } catch (e) {} },
@@ -166,8 +203,10 @@ function chargerReglages() {
   const fournisseur = memoire.lire("agentFactu.fournisseur") || "claude";
   $("provider").value = fournisseur;
   $("model").value = memoire.lire("agentFactu.modele." + fournisseur) || FOURNISSEURS[fournisseur].modele;
+  $("effort").value = memoire.lire("agentFactu.effort") || "medium";
   afficherEtatCle();
 }
+$("effort").addEventListener("change", () => memoire.ecrire("agentFactu.effort", $("effort").value));
 
 function afficherModeAllege() {
   if ($("mailsNotice")) afficherNoticeMails();
@@ -243,6 +282,9 @@ $("file").addEventListener("change", async (ev) => {
 
 function chargerClasseur(octets, nom) {
   const classeur = XLSX.read(octets, { type: "array", cellDates: true });
+  etat.classeur = classeur;
+  etat.signaux = calculerSignaux(classeur);
+  afficherSignaux(etat.signaux);
   etat.donneesTexte = classeurEnTexte(classeur);
   etat.donneesLegeres = donneesAllegees(classeur);
   etat.faits = calculerFaits(classeur);
@@ -275,6 +317,101 @@ function classeurEnTexte(classeur) {
       .split("\n").filter((l) => l.replace(/[|\s]/g, "") !== "").join("\n");
     return `### Onglet « ${nom} »\n${texte}`;
   }).join("\n\n");
+}
+
+// ---------- 5 bis. Signaux mesurés pour le diagnostic (sans IA) ----------
+const MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const jour = (d) => (d instanceof Date ? d.toLocaleDateString("fr-FR") : String(d));
+
+function calculerSignaux(classeur) {
+  const lire = (nom) => (classeur.Sheets[nom] ? XLSX.utils.sheet_to_json(classeur.Sheets[nom], { defval: "" }) : []);
+  const journal = lire("Journal_activité").filter((l) => l["Date"] instanceof Date);
+  const factures = lire("Factures");
+  const realise = lire("Réalisé");
+
+  // Relances : on regroupe les lignes qui ont la même date, le même objet et le même destinataire
+  // (le journal note parfois une ligne par consultant pour un seul mail).
+  const distinctes = new Map();
+  journal.filter((l) => l["Action"] === "Relance mail").forEach((l) => {
+    const detail = String(l["Détail"]);
+    const categorie = /compte rendu|CRA/i.test(detail) ? "CRA" : /manager/i.test(detail) ? "manager" : "BC";
+    const m = detail.match(/[Rr]elance (?:au manager |à )([^(:]+?)\s*[(:]/);
+    const qui = m ? m[1].trim() : String(l["Contrat"]);
+    const cle = `${l["Date"].toISOString().slice(0, 10)}|${categorie}|${qui}`;
+    if (!distinctes.has(cle)) distinctes.set(cle, { date: l["Date"], categorie, qui });
+  });
+  const relances = [...distinctes.values()];
+  const dates = relances.map((r) => r.date.getTime());
+  const fin = dates.length ? new Date(Math.max(...dates)) : null;
+  const compterPar = (liste, cle) => liste.reduce((acc, x) => { acc[x[cle]] = (acc[x[cle]] || 0) + 1; return acc; }, {});
+  const exports = journal.filter((l) => l["Action"] === "Export Excel manuel");
+  const facturation = journal.filter((l) => /facturation/i.test(l["Acteur"]));
+  return {
+    relances: {
+      total: relances.length,
+      debut: dates.length ? new Date(Math.min(...dates)) : null, fin,
+      dernierMois: fin ? relances.filter((r) => r.date.getMonth() === fin.getMonth() && r.date.getFullYear() === fin.getFullYear()).length : 0,
+      nomDernierMois: fin ? MOIS_FR[fin.getMonth()] : "",
+      cra: compterPar(relances.filter((r) => r.categorie === "CRA"), "qui"),
+      manager: compterPar(relances.filter((r) => r.categorie === "manager"), "qui"),
+      bc: relances.filter((r) => r.categorie === "BC").length,
+    },
+    exports: { total: exports.length, mois: [...new Set(exports.map((l) => MOIS_FR[l["Date"].getMonth()]))], acteurs: [...new Set(exports.map((l) => l["Acteur"]))] },
+    copilot: journal.filter((l) => l["Action"] === "Question Copilot").map((l) => String(l["Détail"])),
+    rejets: compterPar(factures.filter((f) => /^Rejet/i.test(f["Statut"])), "Motif rejet"),
+    attenteValidation: realise.filter((r) => r["Statut validation"] && r["Statut validation"] !== "Validé").length,
+    charge: compterPar(facturation, "Acteur"),
+  };
+}
+
+// Les signaux en phrases (affichées à l'écran et envoyées à l'IA).
+function signauxEnLignes(sg) {
+  const r = sg.relances;
+  const liste = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([qui, n]) => `${qui} ${n} fois`).join(", ");
+  const nbCRA = Object.values(r.cra).reduce((a, b) => a + b, 0);
+  const nbMgr = Object.values(r.manager).reduce((a, b) => a + b, 0);
+  const lignes = [];
+  lignes.push({ titre: `Relances notées au journal d'activité : ${r.total} relances${r.debut ? ` entre le ${jour(r.debut)} et le ${jour(r.fin)}` : ""}${r.dernierMois ? `, dont ${r.dernierMois} en ${r.nomDernierMois}` : ""}`, puces: [
+    nbCRA ? `${nbCRA} pour des CRA non reçus, à ${Object.keys(r.cra).length} consultant${Object.keys(r.cra).length > 1 ? "s" : ""} : ${liste(r.cra)}` : "",
+    nbMgr ? `${nbMgr} au manager ${Object.keys(r.manager).join(", ")} pour du réalisé non validé` : "",
+    r.bc ? `${r.bc} pour un bon de commande manquant` : "",
+  ].filter(Boolean) });
+  if (sg.exports.total) lignes.push({ titre: `Exports Excel manuels : ${sg.exports.total}, de ${sg.exports.mois[0]} à ${sg.exports.mois[sg.exports.mois.length - 1]} (${sg.exports.acteurs.join(", ")})` });
+  if (sg.copilot.length) lignes.push({ titre: `Questions posées à Copilot : ${sg.copilot.length}`, puces: sg.copilot });
+  const motifs = Object.entries(sg.rejets);
+  if (motifs.length) lignes.push({ titre: `Factures rejetées : ${motifs.reduce((a, [, n]) => a + n, 0)}`, puces: motifs.map(([m, n]) => `${n} pour « ${m || "motif non précisé"} »`) });
+  if (sg.attenteValidation) lignes.push({ titre: `Réalisé en attente de validation par le manager : ${sg.attenteValidation} ligne${sg.attenteValidation > 1 ? "s" : ""}` });
+  const charge = Object.entries(sg.charge).sort((a, b) => b[1] - a[1]);
+  if (charge.length) lignes.push({ titre: `Activité notée au journal par chargée de facturation : ${charge.map(([q, n]) => `${q.replace(/\s*\(facturation\)/, "")} ${n} actions`).join(", ")}` });
+  return lignes;
+}
+
+function signauxEnTexte(sg) {
+  return signauxEnLignes(sg).map((l) => "- " + l.titre + (l.puces ? "\n" + l.puces.map((p) => "  - " + p).join("\n") : "")).join("\n");
+}
+
+function afficherSignaux(sg) {
+  const bloc = document.createElement("div");
+  const titre = document.createElement("p");
+  titre.innerHTML = "<b>Signaux mesurés par le programme</b> (comptage, sans IA)";
+  const ul = document.createElement("ul");
+  signauxEnLignes(sg).forEach((l) => {
+    const li = document.createElement("li"); li.textContent = l.titre;
+    if (l.puces) { const sous = document.createElement("ul"); l.puces.forEach((p) => { const x = document.createElement("li"); x.textContent = p; sous.appendChild(x); }); li.appendChild(sous); }
+    ul.appendChild(li);
+  });
+  bloc.append(titre, ul);
+  $("signaux").replaceChildren(bloc);
+}
+
+// Données envoyées pour le diagnostic : les signaux et quelques onglets seulement (pas les mails, pas le Rapprochement).
+function systemeDiagnostic() {
+  const onglets = ["Contrats", "Consultants", "Factures", "Journal_activité", "Règles_de_contrôle"].filter((n) => etat.classeur.Sheets[n]);
+  return [
+    INSTRUCTIONS_DIAGNOSTIC,
+    "## SIGNAUX MESURÉS PAR LE PROGRAMME\n" + signauxEnTexte(etat.signaux),
+    "## ONGLETS DU RÉFÉRENTIEL\n" + classeurEnTexte({ SheetNames: onglets, Sheets: etat.classeur.Sheets }),
+  ].join("\n\n");
 }
 
 // Lit l'onglet Rapprochement et relève les anomalies, sans IA.
@@ -515,6 +652,9 @@ $("btnDeconnexion").addEventListener("click", () => {
   etat.donneesTexte = ""; etat.donneesLegeres = ""; etat.historique = []; etat.appliquees = new Set();
   $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = "";
   $("factsSection").hidden = true; $("factsResume").replaceChildren(); $("facts").replaceChildren();
+  etat.classeur = null; etat.signaux = null;
+  $("signaux").replaceChildren(Object.assign(document.createElement("p"), { className: "status", textContent: "Connectez-vous à vos données pour voir les signaux mesurés." }));
+  $("diagResultat").replaceChildren(); $("diagResultat").hidden = true; $("diagStatus").textContent = "";
   $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
   $("fileStatus").textContent = "Aucun fichier chargé.";
   $("mailsStatus").textContent = "";
@@ -693,11 +833,14 @@ function extraireTexte(entetes, corps) {
 }
 
 // ---------- 7. L'appel au modèle (fetch = adresse + badge + contenu) ----------
-async function appelerModele(surMorceau) {
+// options.systeme / options.messages : pour le diagnostic ; par défaut, la conversation de l'agent.
+async function appelerModele(surMorceau, options = {}) {
   const fournisseur = $("provider").value;
   const modele = $("model").value.trim() || FOURNISSEURS[fournisseur].modele;
   const cle = memoire.lire(cleStockage());
-  if (!cle) throw new Error("Aucune clé enregistrée. Collez votre clé dans la partie 1 puis cliquez sur « Enregistrer la clé ».");
+  if (!cle) { $("reglages").open = true; throw new Error("Aucune clé enregistrée. Ouvrez « ⚙ Réglages », collez votre clé puis cliquez sur « Enregistrer la clé »."); }
+  const systeme = options.systeme || messageSysteme();
+  const messages = options.messages || etat.historique;
 
   let reponse, donnees;
   if (fournisseur === "claude") {
@@ -713,10 +856,10 @@ async function appelerModele(surMorceau) {
       body: JSON.stringify({
         model: modele,
         max_tokens: 16000,
-        output_config: { effort: "medium" },
+        output_config: { effort: $("effort").value || "medium" },
         fallbacks: "default", // si le modèle refuse, l'API réessaie avec un autre modèle
-        system: [{ type: "text", text: messageSysteme(), cache_control: { type: "ephemeral" } }],
-        messages: etat.historique,
+        system: [{ type: "text", text: systeme, cache_control: { type: "ephemeral" } }],
+        messages,
         stream: true, // la réponse arrive au fil de l'eau
       }),
     });
@@ -730,7 +873,9 @@ async function appelerModele(surMorceau) {
   reponse = await fetch(FOURNISSEURS.groq.adresse, {
     method: "POST",
     headers: { "content-type": "application/json", "authorization": "Bearer " + cle },
-    body: JSON.stringify(corpsGroq(modele)),
+    body: JSON.stringify(options.systeme
+      ? { model: modele, max_tokens: 3000, messages: [{ role: "system", content: options.systeme }, ...messages], ...(modele.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}) }
+      : corpsGroq(modele)),
   });
   donnees = await lireJson(reponse);
   if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
@@ -947,6 +1092,17 @@ async function appliquerModification(m) {
   await chargerReferentielDrive(); // l'agent verra la mise à jour à la question suivante
 }
 
+// Indicateur d'attente : point animé + secondes écoulées, tant que l'IA n'a pas commencé à écrire.
+function demarrerAttente(zone, texte) {
+  const debut = Date.now();
+  zone.classList.add("attente");
+  const maj = () => { zone.textContent = `${texte} ${Math.round((Date.now() - debut) / 1000)} s`; };
+  maj();
+  const minuteur = setInterval(maj, 1000);
+  return (texteSuivant) => { clearInterval(minuteur); zone.classList.remove("attente"); zone.textContent = texteSuivant || ""; };
+}
+const texteAnalyse = () => `L'assistant analyse le référentiel${etat.mails.length ? ` et ${etat.mails.length} mails` : ""}…`;
+
 async function envoyer(question) {
   question = (question || "").trim();
   if (!question) return;
@@ -955,21 +1111,21 @@ async function envoyer(question) {
   afficherMessage("user", question);
   $("question").value = "";
   basculer(true);
-  $("sendStatus").textContent = "L'agent analyse les données…";
+  const arreter = demarrerAttente($("sendStatus"), texteAnalyse());
   let bulle = null;
   try {
     let dernierRendu = 0;
     const texte = await appelerModele((partiel) => {
-      if (!bulle) { bulle = creerBulleAgent(); $("sendStatus").textContent = "L'agent écrit…"; }
+      if (!bulle) { bulle = creerBulleAgent(); arreter("L'assistant écrit…"); }
       if (Date.now() - dernierRendu > 150) { dernierRendu = Date.now(); rendreReponse(bulle, partiel, false); }
     });
     etat.historique.push({ role: "assistant", content: texte });
     if (bulle) rendreReponse(bulle, texte, true); else afficherMessage("assistant", texte);
-    $("sendStatus").textContent = "";
+    arreter("");
   } catch (e) {
     if (bulle) bulle.parentElement.remove(); // réponse interrompue : on retire le début affiché
     etat.historique.pop(); // la question sans réponse est retirée de l'historique
-    $("sendStatus").textContent = "";
+    arreter("");
     const err = document.createElement("div");
     err.className = "error";
     err.textContent = e.message;
@@ -980,7 +1136,7 @@ async function envoyer(question) {
 }
 
 function basculer(occupe) {
-  ["send", "btnPoint", "btnRegles", "btnCRA", "btnReset"].forEach((id) => ($(id).disabled = occupe));
+  ["send", "btnPoint", "btnRegles", "btnCRA", "btnReset", "btnDiag"].forEach((id) => ($(id).disabled = occupe));
 }
 
 $("send").addEventListener("click", () => envoyer($("question").value));
@@ -988,42 +1144,52 @@ $("question").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.c
 $("btnPoint").addEventListener("click", () => envoyer("Fais le point du jour."));
 $("btnRegles").addEventListener("click", () => envoyer("Quels changements de règles as-tu repérés dans les mails, et quelles mises à jour du référentiel proposes-tu ?"));
 $("btnCRA").addEventListener("click", () => {
-  if (!etat.faits) { $("sendStatus").textContent = "Connectez-vous d'abord à vos données."; return; }
-  afficherTableauCRA(etat.faits); // affiché tout de suite, sans IA
   envoyer("Fais le point sur les CRA manquants.");
 });
 
-// Tableau des CRA manquants calculé par le programme (fonctionne même sans clé).
-function afficherTableauCRA(f) {
-  const bloc = document.createElement("div");
-  bloc.className = "msg assistant";
-  const qui = document.createElement("div");
-  qui.className = "who";
-  qui.textContent = "Programme (sans IA)";
-  const titre = document.createElement("p");
-  titre.textContent = f.cra.length
-    ? `CRA non reçus pour ${f.moisCRA} : ${f.cra.length} consultant(s), ${euros(f.totaux.risqueCRA)} de chiffre d'affaires ESTIMÉ à risque.`
-    : `Aucun CRA manquant pour ${f.moisCRA}.`;
-  bloc.append(qui, titre);
-  if (f.cra.length) {
-    const table = document.createElement("table");
-    const tete = table.createTHead().insertRow();
-    ["Consultant", "Contrat", "Manager", "Montant estimé (€ HT)", "Lignes au journal", "Dernière ligne"].forEach((t) => {
-      const th = document.createElement("th"); th.textContent = t; tete.appendChild(th);
-    });
-    const corps = table.createTBody();
-    f.cra.forEach((c) => {
-      const lignes = f.relancesCRA[c.consultant] || [];
-      const derniere = lignes.length ? `${lignes[lignes.length - 1].date} : ${lignes[lignes.length - 1].detail}` : "aucune";
-      const tr = corps.insertRow();
-      [`${c.consultant} ${c.nom}`, c.contrat, f.managers[c.contrat] || "", euros(c.estime), String(lignes.length), derniere]
-        .forEach((v, i) => { const td = tr.insertCell(); td.textContent = v; if (i === 3 || i === 4) td.className = "num"; });
-    });
-    bloc.appendChild(table);
-  }
-  $("chat").appendChild(bloc);
-}
 $("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = ""; });
+
+// ---------- 9. Onglets et diagnostic des irritants ----------
+function montrerOnglet(nom) {
+  const diag = nom === "diag";
+  $("vueDiag").hidden = !diag; $("vueAgent").hidden = diag;
+  $("ongletDiag").classList.toggle("actif", diag); $("ongletAgent").classList.toggle("actif", !diag);
+  $("ongletDiag").setAttribute("aria-selected", String(diag)); $("ongletAgent").setAttribute("aria-selected", String(!diag));
+}
+$("ongletDiag").addEventListener("click", () => montrerOnglet("diag"));
+$("ongletAgent").addEventListener("click", () => montrerOnglet("agent"));
+
+$("btnDiag").addEventListener("click", async () => {
+  if (!etat.signaux) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
+  const zone = $("diagResultat");
+  basculer(true);
+  const arreter = demarrerAttente($("diagStatus"), "L'assistant analyse les traces du référentiel…");
+  zone.hidden = true;
+  let dernierRendu = 0;
+  try {
+    const texte = await appelerModele((partiel) => {
+      if (zone.hidden) { zone.hidden = false; arreter("L'assistant écrit…"); }
+      if (Date.now() - dernierRendu > 150) { dernierRendu = Date.now(); zone.innerHTML = DOMPurify.sanitize(marked.parse(partiel), { FORBID_TAGS: ["img"] }); }
+    }, { systeme: systemeDiagnostic(), messages: [{ role: "user", content: "Analyse les principaux irritants du service facturation et propose des agents pour y remédier." }] });
+    zone.innerHTML = DOMPurify.sanitize(marked.parse(texte), { FORBID_TAGS: ["img"] });
+    zone.hidden = false;
+    // Sur la ligne de l'agent déjà construit, un bouton mène à l'onglet 2.
+    zone.querySelectorAll("td").forEach((td) => {
+      if (/^Agent facturation\b/i.test(td.textContent.trim())) {
+        const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Voir l'agent →";
+        b.addEventListener("click", () => { montrerOnglet("agent"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+        td.append(document.createElement("br"), b);
+      }
+    });
+    arreter("");
+  } catch (e) {
+    arreter("");
+    zone.hidden = false;
+    zone.replaceChildren(Object.assign(document.createElement("div"), { className: "error", textContent: e.message }));
+  } finally {
+    basculer(false);
+  }
+});
 
 chargerReglages();
 

@@ -24,6 +24,8 @@
       font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
     main { max-width: 1000px; margin: 0 auto; padding: 16px; }
     h1 { font-size: 1.4rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+    .version { font-size: 0.75rem; font-weight: 600; color: var(--muted, #5d6675); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
+    .version.decalee { color: #8a5300; }
     h1 svg { flex: none; color: var(--accent); }
     .envoi { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
     .connexion { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -61,6 +63,15 @@
     .msg.assistant { background: var(--panel); }
     .msg .who { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
     .quick button { margin-right: 6px; }
+    .onglets { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 4px 0 14px; flex-wrap: wrap; }
+    .onglet { background: transparent; color: var(--muted); border: none; border-bottom: 3px solid transparent; border-radius: 0; margin: 0 0 -2px; padding: 10px 14px; font-weight: 600; }
+    .onglet.actif { color: var(--accent); border-bottom-color: var(--accent); }
+    .signaux ul { margin: 6px 0 10px; padding-left: 20px; }
+    .signaux li { margin: 2px 0; }
+    .attente::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
+      background: var(--accent); animation: pulse 1s ease-in-out infinite; vertical-align: middle; }
+    @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.1); } }
+    @media (prefers-reduced-motion: reduce) { .attente::before { animation: none; } }
     details.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
     details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
     details[open] > summary { margin-bottom: 8px; }
@@ -86,8 +97,9 @@
       <path d="M12 23l3 3 6-7"/>
     </svg>
     Assistant du service facturation
+  <span class="version" id="version" title="Version de la page">v0.8 · 15/11/2026</span>
   </h1>
-  <p class="sub">Rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
+  <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
   <details class="panel" id="reglages">
@@ -108,6 +120,12 @@
         <div class="status" id="modelStatus"></div>
       </div>
     </div>
+    <label for="effort">Niveau de réflexion (Claude)</label>
+    <select id="effort">
+      <option value="low">Rapide : réponse plus vite et moins chère, analyse moins poussée</option>
+      <option value="medium">Équilibré (recommandé)</option>
+      <option value="high">Approfondi : plus lent et plus cher</option>
+    </select>
     <label for="apiKey">Clé API (champ masqué, gardée dans ce navigateur uniquement)</label>
     <input type="password" id="apiKey" autocomplete="off" placeholder="Collez votre clé ici">
     <button id="saveKey">Enregistrer la clé</button>
@@ -137,15 +155,33 @@
     </details>
   </section>
 
+  <!-- Deux onglets : 1. le diagnostic (quels irritants ?), 2. l'agent qui traite le premier d'entre eux -->
+  <nav class="onglets" role="tablist">
+    <button class="onglet actif" id="ongletDiag" role="tab">1. Diagnostic des irritants</button>
+    <button class="onglet" id="ongletAgent" role="tab">2. Agent facturation</button>
+  </nav>
+
+  <div id="vueDiag">
+    <section>
+      <h2>Qu'est-ce qui freine le service facturation ?</h2>
+      <p class="hint">L'IA analyse les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants et propose des agents pour y remédier. Données fictives.</p>
+      <div class="signaux" id="signaux"><p class="status">Connectez-vous à vos données pour voir les signaux mesurés.</p></div>
+      <button id="btnDiag">Analyser les irritants</button>
+      <div class="status" id="diagStatus"></div>
+      <div id="diagResultat" class="msg assistant" hidden></div>
+    </section>
+  </div>
+
+  <div id="vueAgent" hidden>
   <!-- La conversation -->
   <section>
     <h2>Que souhaitez-vous faire ?</h2>
-    <div class="quick">
+    <div id="chat" style="margin-top:12px"></div>
+    <div class="quick" style="margin-top:12px">
       <button id="btnPoint">Le point du jour</button>
       <button id="btnCRA" class="secondary">Relancer les CRA manquants</button>
       <button id="btnRegles" class="secondary">Mettre à jour le référentiel</button>
     </div>
-    <div id="chat" style="margin-top:12px"></div>
     <label for="question">Votre question</label>
     <textarea id="question" placeholder="Ex. : pourquoi le contrat CT-2026-005 est-il en dépassement ?"></textarea>
     <div class="envoi">
@@ -162,6 +198,7 @@
     <div class="totaux" id="factsResume"></div>
     <div class="scroll" id="facts"></div>
   </details>
+  </div>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
