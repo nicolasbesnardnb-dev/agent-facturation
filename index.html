@@ -50,6 +50,10 @@
     button.secondary { background: transparent; color: var(--accent); }
     button:disabled { opacity: .5; cursor: not-allowed; }
     .status { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+    .modeleActif { color: var(--muted); font-size: .8rem; margin: -2px 0 4px 44px; }
+    .conso { color: var(--muted); font-size: .8rem; margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 6px; }
+    .notice:empty { display: none; }
+    .piedPage { color: var(--muted); font-size: .75rem; text-align: center; margin: 20px 0 8px; }
     .notice { background: var(--warn-bg); color: var(--warn); padding: 8px 10px; border-radius: 6px; font-size: .9rem; }
     .error { background: var(--err-bg); color: var(--err); padding: 8px 10px; border-radius: 6px; }
     table { border-collapse: collapse; width: 100%; font-size: .88rem; }
@@ -115,7 +119,6 @@
       <path d="M12 23l3 3 6-7"/>
     </svg>
     Assistant du service facturation
-  <span class="version" id="version" title="Version de la page">v0.19 · 15/11/2026</span>
   </h1>
   <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
   <div class="boutonsEntete">
@@ -123,7 +126,8 @@
     <button id="btnAdmin" class="secondary" title="Accès responsable du service">📊 Diagnostic des irritants</button>
   </div>
   </div>
-  <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, le chargé de facturation décide.</p>
+  <p class="modeleActif" id="modeleActif"></p>
+  <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé<br>L'assistant propose, le chargé de facturation décide.</p>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
   <details class="panel" id="reglages">
@@ -174,8 +178,7 @@
     </div>
     <p class="hint">Gmail en lecture seule : l'assistant ne peut ni envoyer, ni supprimer, ni modifier un mail. Le référentiel n'est modifié qu'après votre clic « Valider ».</p>
     <div class="status" id="googleStatus"></div>
-    <div class="status" id="fileStatus">Aucun fichier chargé.</div>
-    <div class="status" id="mailsStatus"></div>
+    <div class="status"><span id="fileStatus">Aucun fichier chargé.</span> <span id="mailsStatus"></span></div>
     <p class="notice" id="mailsNotice">Mails : aucun chargé. L'agent le signalera en tête de réponse et travaillera à partir du fichier Excel seul.</p>
     <details id="local">
       <summary>Charger depuis l'ordinateur (solution de secours)</summary>
@@ -246,6 +249,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.23 · 15/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

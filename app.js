@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.19 · 15/11/2026";
+const VERSION = "v0.23 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -239,6 +239,7 @@ function remplirModeles(modeles, choisi) {
     const o = document.createElement("option"); o.value = m.id; o.textContent = m.nom; return o;
   }));
   $("model").value = choisi || liste[0].id;
+  if ($("modeleActif")) afficherModeleActif();
 }
 function modeleMemorise(f) { return memoire.lire("agentFactu.modele." + f) || FOURNISSEURS[f].modele; }
 
@@ -247,9 +248,19 @@ function chargerReglages() {
   $("provider").value = fournisseur;
   remplirModeles(MODELES_PROPOSES[fournisseur], modeleMemorise(fournisseur));
   $("effort").value = memoire.lire("agentFactu.effort") || "medium";
+  afficherModeleActif();
   afficherEtatCle();
 }
-$("effort").addEventListener("change", () => memoire.ecrire("agentFactu.effort", $("effort").value));
+$("effort").addEventListener("change", () => { memoire.ecrire("agentFactu.effort", $("effort").value); afficherModeleActif(); });
+
+// Sous le titre : le modèle d'IA choisi (et le niveau de réflexion pour Claude).
+function afficherModeleActif() {
+  const p = $("provider"), m = $("model"), e = $("effort");
+  const fournisseur = p.options[p.selectedIndex] ? p.options[p.selectedIndex].text.split(" (")[0] : p.value;
+  const modele = m.value ? (m.options[m.selectedIndex].text.split(" : ")[0]) : "aucun modèle choisi";
+  const reflexion = p.value === "claude" && e.options[e.selectedIndex] ? " · réflexion : " + e.options[e.selectedIndex].text.split(" ")[0].replace(/\s*:$/, "") : "";
+  $("modeleActif").textContent = "Modèle d'IA : " + (modele.toLowerCase().includes(fournisseur.toLowerCase().split(" ")[0]) ? modele : fournisseur + " · " + modele) + reflexion;
+}
 
 function afficherModeAllege() {
   if ($("mailsNotice")) afficherNoticeMails();
@@ -302,6 +313,7 @@ $("listModels").addEventListener("click", async () => {
 });
 
 $("model").addEventListener("change", () => {
+  afficherModeleActif();
   memoire.ecrire("agentFactu.modele." + $("provider").value, $("model").value);
 });
 $("saveKey").addEventListener("click", () => {
@@ -370,7 +382,7 @@ function chargerClasseur(octets, nom) {
   etat.faits = calculerFaits(classeur);
   afficherFaits(etat.faits);
   majBoutons();
-  $("fileStatus").textContent = `Fichier chargé : ${nom} (${classeur.SheetNames.length} onglets). Il reste dans ce navigateur ; il sera envoyé au modèle d'IA avec chaque question.`;
+  $("fileStatus").textContent = `Référentiel : ${nom}`;
 }
 
 // Mode allégé : les contrats + seulement les lignes du journal des contrats en anomalie.
@@ -605,7 +617,7 @@ function enregistrerMails(lus, erreurs) {
   const envoyes = etat.mails.filter((m) => /Service facturation/i.test(m.de)).length;
   const dates = etat.mails.filter((m) => m.horodatage).map((m) => m.horodatage);
   $("mailsStatus").textContent = etat.mails.length
-    ? `${etat.mails.length} mails chargés (${envoyes} envoyés par le service, ${etat.mails.length - envoyes} reçus), du ${new Date(Math.min(...dates)).toLocaleDateString("fr-FR")} au ${new Date(Math.max(...dates)).toLocaleDateString("fr-FR")}.` + (erreurs.length ? ` Illisibles : ${erreurs.join(", ")}.` : "")
+    ? `· ${etat.mails.length} mails (${envoyes} envoyés, ${etat.mails.length - envoyes} reçus) du ${new Date(Math.min(...dates)).toLocaleDateString("fr-FR").slice(0, 5)} au ${new Date(Math.max(...dates)).toLocaleDateString("fr-FR").slice(0, 5)}` + (erreurs.length ? ` · illisibles : ${erreurs.join(", ")}` : "")
     : "Aucun mail lisible dans ces fichiers." + (erreurs.length ? ` Illisibles : ${erreurs.join(", ")}.` : "");
   afficherNoticeMails();
 }
@@ -736,7 +748,7 @@ async function chargerDepuisGoogle() {
     }));
   }
   enregistrerMails(lus, erreurs);
-  $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Référentiel et mails chargés depuis Google.` + (ids.length >= 300 ? " Attention : seuls les 300 mails les plus récents ont été lus." : "");
+  $("googleStatus").textContent = ids.length >= 300 ? "Attention : seuls les 300 mails les plus récents ont été lus." : "";
 }
 
 function afficherNoticeMails() {
@@ -745,7 +757,7 @@ function afficherNoticeMails() {
     ? "Mails : aucun chargé. L'agent le signalera en tête de réponse et travaillera à partir du fichier Excel seul."
     : groq
       ? "Mails chargés, mais non envoyés avec Groq gratuit : ils dépasseraient sa limite de 8 000 tokens par minute. Choisissez Claude pour que l'agent les utilise."
-      : "Mails chargés : l'agent travaille sur cette copie, pas sur la boîte en direct.";
+      : ""; // mails chargés et envoyés : pas d'avertissement
 }
 
 function mailsEnTexte() {
@@ -860,7 +872,8 @@ async function appelerModele(surMorceau, options = {}) {
       }),
     });
     if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, await lireJson(reponse)));
-    const { texte, arret } = await lireFlux(reponse, surMorceau);
+    const { texte, arret, conso } = await lireFlux(reponse, surMorceau);
+    noterConso("claude", conso.modele || modele, conso);
     if (arret === "refusal") throw new Error("Le modèle a refusé de répondre à cette demande.");
     return texte + (arret === "max_tokens" ? "\n\n*(Réponse coupée : limite de longueur atteinte. Demandez la suite.)*" : "");
   }
@@ -878,6 +891,7 @@ async function appelerModele(surMorceau, options = {}) {
     }
     donnees = await lireJson(reponse);
     if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
+    noterConsoOpenAI(fournisseur, modele, donnees.usage);
     const choix = (donnees.choices || [])[0] || {};
     const texte = (choix.message && choix.message.content) || "";
     if (!texte) throw new Error("Réponse vide du fournisseur.");
@@ -894,7 +908,45 @@ async function appelerModele(surMorceau, options = {}) {
   });
   donnees = await lireJson(reponse);
   if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
+  noterConsoOpenAI("groq", modele, donnees.usage);
   return donnees.choices[0].message.content; // le texte est « caché » au fond de la réponse
+}
+
+// ---------- 7 bis. Consommation de chaque réponse ----------
+// Tarifs Anthropic en $ par million de tokens (relevés le 03/11/2026, à revérifier : ils peuvent changer).
+// Le cache écrit est compté 1,25 fois le prix d'envoi (cache de 5 minutes).
+const TARIFS_CLAUDE = {
+  "claude-opus-5-5":   { envoi: 4,   cache: 0.20, sortie: 20 },
+  "claude-sonnet-5-5": { envoi: 2,   cache: 0.10, sortie: 10 },
+  "claude-haiku-5-5":  { envoi: 0.1, cache: 0.01, sortie: 0.5 }, // cache relu de Haiku : estimation (10 % du prix d'envoi)
+};
+let derniereConso = null;
+let totalSession = 0;
+function noterConso(fournisseur, modele, c) {
+  const t = fournisseur === "claude" ? TARIFS_CLAUDE[modele] : null;
+  const cout = t ? (c.envoyes * t.envoi + c.cacheEcrit * t.envoi * 1.25 + c.cacheLu * t.cache + c.sortie * t.sortie) / 1e6 : null;
+  if (cout != null) totalSession += cout;
+  derniereConso = { ...c, modele, cout };
+}
+function noterConsoOpenAI(fournisseur, modele, u) {
+  u = u || {};
+  const cacheLu = (u.prompt_tokens_details && u.prompt_tokens_details.cached_tokens) || 0;
+  noterConso(fournisseur, modele, { envoyes: (u.prompt_tokens || 0) - cacheLu, cacheLu, cacheEcrit: 0, sortie: u.completion_tokens || 0 });
+}
+const nombre = (n) => Math.round(n).toLocaleString("fr-FR");
+// Ajoute sous la réponse une ligne discrète : tokens envoyés, relus du cache, réponse, coût estimé.
+function afficherConso(zone) {
+  if (!zone || !derniereConso) return;
+  const c = derniereConso;
+  const envoyesTotal = c.envoyes + c.cacheLu + c.cacheEcrit;
+  let txt = `Consommation (${c.modele}) : ${nombre(envoyesTotal)} tokens envoyés`
+    + (c.cacheLu ? `, dont ${nombre(c.cacheLu)} relus du cache` : ", cache non utilisé")
+    + ` · ${nombre(c.sortie)} tokens de réponse et de réflexion`;
+  txt += c.cout != null
+    ? ` · coût estimé ≈ ${c.cout.toFixed(3).replace(".", ",")} $ · total de la session ≈ ${totalSession.toFixed(2).replace(".", ",")} $`
+    : " · coût : voir les tarifs du fournisseur";
+  zone.appendChild(Object.assign(document.createElement("div"), { className: "conso", textContent: txt }));
+  derniereConso = null;
 }
 
 // Lit la réponse de Claude envoyée par morceaux (« server-sent events ») et transmet le texte reçu au fur et à mesure.
@@ -902,6 +954,7 @@ async function lireFlux(reponse, surMorceau) {
   const lecteur = reponse.body.getReader();
   const decodeur = new TextDecoder();
   let tampon = "", texte = "", arret = null, blocs = 0;
+  const conso = { modele: "", envoyes: 0, cacheLu: 0, cacheEcrit: 0, sortie: 0 };
   for (;;) {
     const { done, value } = await lecteur.read();
     if (done) break;
@@ -913,6 +966,13 @@ async function lireFlux(reponse, surMorceau) {
       if (!ligne) continue;
       let d; try { d = JSON.parse(ligne.slice(5)); } catch (e) { continue; }
       if (d.type === "error") throw new Error("Erreur pendant la réponse : " + ((d.error && d.error.message) || "inconnue"));
+      if (d.type === "message_start" && d.message) {
+        const u = d.message.usage || {};
+        conso.modele = d.message.model || ""; // en cas de repli, le modèle réellement utilisé
+        conso.envoyes = u.input_tokens || 0; conso.cacheLu = u.cache_read_input_tokens || 0; conso.cacheEcrit = u.cache_creation_input_tokens || 0;
+        conso.sortie = u.output_tokens || 0;
+      }
+      if (d.type === "message_delta" && d.usage && d.usage.output_tokens != null) conso.sortie = d.usage.output_tokens;
       if (d.type === "content_block_start" && d.content_block && d.content_block.type === "text" && blocs++ > 0) texte += "\n";
       if (d.type === "content_block_delta" && d.delta && d.delta.type === "text_delta") {
         texte += d.delta.text;
@@ -921,7 +981,7 @@ async function lireFlux(reponse, surMorceau) {
       if (d.type === "message_delta" && d.delta && d.delta.stop_reason) arret = d.delta.stop_reason;
     }
   }
-  return { texte, arret };
+  return { texte, arret, conso };
 }
 
 // Mode allégé : instructions résumées, données réduites, seulement les derniers échanges.
@@ -1136,6 +1196,8 @@ async function envoyer(question) {
     });
     etat.historique.push({ role: "assistant", content: texte });
     if (bulle) rendreReponse(bulle, texte, true); else afficherMessage("assistant", texte);
+    const bulles = $("chat").querySelectorAll(".msg.assistant");
+    afficherConso(bulles[bulles.length - 1]);
     arreter("");
   } catch (e) {
     if (bulle) bulle.parentElement.remove(); // réponse interrompue : on retire le début affiché
@@ -1230,6 +1292,7 @@ $("btnDiag").addEventListener("click", async () => {
         td.append(document.createElement("br"), b);
       }
     });
+    afficherConso(zone);
     arreter("");
   } catch (e) {
     arreter("");
