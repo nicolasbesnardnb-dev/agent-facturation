@@ -50,7 +50,7 @@ Classe tes propositions en deux niveaux :
 Donnée à mettre à jour dans le référentiel (fiche contrat, TJM, référence de commande, suppléant) ;
 Contrôle à ajouter à tes propres instructions, formulé comme une règle que tu appliquerais au prochain point du jour.
 Termine chaque proposition par « À valider par un humain avant mise à jour ». Tu ne modifies rien toi-même : tu proposes.
-Sois bref par défaut : présente d'abord les 3 changements les plus importants, en une ligne chacun (ce qui a changé → donnée à mettre à jour ou contrôle à ajouter), puis indique combien d'autres changements tu as repérés. Ne donne le détail (source, anomalie, montant) que si on te le demande.
+Sois bref : une ligne par changement (ce qui a changé → donnée à mettre à jour ou contrôle à ajouter). Liste TOUS les changements repérés en une seule fois : n'en garde aucun « pour plus tard » et n'écris pas « détaillés à la demande ». Ne donne le détail (source, anomalie, montant) que si on te le demande.
 
 Format de réponse
 Commencer par un tableau récapitulatif : Contrat | Type d'anomalie | Montant (€ HT) | Action proposée | Destinataire.
@@ -104,7 +104,10 @@ Texte du mail.
 Mises à jour du référentiel
 - Tu ne modifies jamais rien toi-même. Tu peux seulement PROPOSER des mises à jour, que le chargé de facturation applique en cliquant sur « Valider ». Pour ces seules propositions, la règle « modifier un contrat n'est pas dans ton périmètre » ne s'applique pas.
 - Champs autorisés, et aucun autre : dans l'onglet Contrats, les colonnes « Suppléant manager (jusqu'au) », « Autres réf. obligatoires » et « Statut BC » ; et l'ajout d'une règle dans l'onglet « Règles_de_contrôle ». Ne propose jamais de modifier un montant, un TJM, un nombre de jours, une facture ou le réalisé : signale-le comme anomalie à traiter par un humain.
-- Ne fais ces propositions que lorsqu'on te demande les changements de règles ou une mise à jour du référentiel. Ne propose pas ce qui figure déjà dans le fichier.
+- Ne fais ces propositions que lorsqu'on te demande les changements de règles ou une mise à jour du référentiel. Dans ce cas, donne TOUTES les propositions justifiées en une seule réponse, sans limite de nombre. S'il n'y a rien de nouveau à proposer, écris « Le référentiel est à jour. » et n'écris aucun bloc « modification ».
+- Ne propose jamais ce qui figure déjà dans le fichier, même formulé autrement : une valeur déjà présente dans la fiche (même contrat, même champ, même sens) ou une règle déjà présente dans « Règles_de_contrôle ».
+- Avant de proposer une règle, relis les règles existantes : si l'une couvre déjà le cas, même pour une autre personne ou un autre contrat (exemple : une règle sur les managers absents couvre aussi un consultant absent), ne propose rien ; signale seulement en une ligne qu'elle s'applique.
+- Ne repropose jamais une proposition refusée : les refus sont les lignes du Journal_activité dont l'action est « Proposition refusée », et la liste « PROPOSITIONS REFUSÉES » si elle est fournie.
 - Chaque proposition cite sa source précise (date et expéditeur du mail). Écris-les dans un bloc de code dont la langue est « modification », une ligne JSON par proposition, par exemple :
 \`\`\`modification
 {"type":"fiche","contrat":"CT-2026-003","colonne":"Suppléant manager (jusqu'au)","valeur":"A. Royer (jusqu'au 20/11/2026)","source":"Réponse automatique de J. Perrin, 02/11/2026"}
@@ -199,13 +202,14 @@ const etat = {
   sheetId: null,      // identifiant du Google Sheet, si le référentiel vient de Drive au format Google Sheets
   compteGoogle: "",   // adresse du compte Google connecté
   appliquees: new Set(), // modifications déjà validées (pour ne pas les appliquer deux fois)
+  refusees: [],       // propositions refusées pendant la session (texte envoyé à l'IA)
   classeur: null,     // le référentiel lu (pour le diagnostic)
 };
 
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.34 · 15/11/2026";
+const VERSION = "v0.35 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -611,7 +615,8 @@ function messageSysteme() {
     "## FAITS CALCULÉS PAR LE PROGRAMME\n" + faitsEnTexte(etat.faits),
     "## CONTENU DU FICHIER EXCEL\n" + etat.donneesTexte,
     "## MAILS\n" + mailsEnTexte(),
-  ].join("\n\n");
+    etat.refusees.length ? "## PROPOSITIONS REFUSÉES PAR LE CHARGÉ DE FACTURATION (ne pas les reproposer)\n" + etat.refusees.map((r) => "- " + r).join("\n") : "",
+  ].filter(Boolean).join("\n\n");
 }
 
 // ---------- 6 bis. Les mails (fichiers .eml, éventuellement dans des .zip) ----------
@@ -700,7 +705,7 @@ $("btnDeconnexion").addEventListener("click", () => {
   jetonGoogle = null;
   clearTimeout(minuteurExpiration);
   etat.compteGoogle = ""; nomCompteGoogle = ""; etat.sheetId = null; etat.mails = []; etat.faits = null;
-  etat.donneesTexte = ""; etat.donneesLegeres = ""; etat.historique = []; etat.appliquees = new Set();
+  etat.donneesTexte = ""; etat.donneesLegeres = ""; etat.historique = []; etat.appliquees = new Set(); etat.refusees = [];
   $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = "";
   $("factsSection").hidden = true; $("factsResume").replaceChildren(); $("facts").replaceChildren();
   etat.classeur = null;
@@ -1162,22 +1167,36 @@ function tableauModifications(propositions) {
     cellules.forEach((v) => { const td = tr.insertCell(); td.textContent = String(v ?? ""); });
     const td = tr.insertCell();
     const cle = JSON.stringify(m);
-    if (probleme) { td.textContent = "Refusée : " + probleme; return; }
+    if (probleme) { td.textContent = "Rejetée par la page : " + probleme; return; }
+    if (etat.appliquees.has(cle)) { td.textContent = "Appliquée ✓"; return; }
+    const deja = dejaTraitee(m);
+    if (deja) { td.textContent = deja; td.className = "deja"; return; }
     const bouton = document.createElement("button");
-    bouton.textContent = etat.appliquees.has(cle) ? "Appliquée ✓" : "Valider";
-    bouton.disabled = etat.appliquees.has(cle);
+    bouton.textContent = "Valider";
+    const refus = document.createElement("button");
+    refus.textContent = "Refuser"; refus.className = "secondary";
     bouton.addEventListener("click", async () => {
-      bouton.disabled = true; bouton.textContent = "Écriture…";
+      bouton.disabled = refus.disabled = true; bouton.textContent = "Écriture…";
       try {
         await appliquerModification(m);
         etat.appliquees.add(cle);
-        bouton.textContent = "Appliquée ✓";
+        td.textContent = "Appliquée ✓";
       } catch (e) {
-        bouton.disabled = false; bouton.textContent = "Valider";
+        bouton.disabled = refus.disabled = false; bouton.textContent = "Valider";
         td.append(document.createTextNode(" " + e.message));
       }
     });
-    td.appendChild(bouton);
+    refus.addEventListener("click", async () => {
+      bouton.disabled = refus.disabled = true; refus.textContent = "Écriture…";
+      try {
+        const note = await refuserModification(m);
+        td.textContent = "Refusée ✗" + note;
+      } catch (e) {
+        bouton.disabled = refus.disabled = false; refus.textContent = "Refuser";
+        td.append(document.createTextNode(" " + e.message));
+      }
+    });
+    td.append(bouton, refus);
   });
   table.appendChild(corps);
   bloc.append(titre, table);
@@ -1187,6 +1206,48 @@ function tableauModifications(propositions) {
 // Une valeur commençant par = + - @ serait lue comme une formule : on la force en texte.
 const texteSur = (v) => (/^[=+\-@]/.test(String(v)) ? "'" + v : String(v));
 const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+// Comparaison tolérante (majuscules, accents, ponctuation et espaces ignorés).
+const normaliser = (v) => String(v ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+const texteProposition = (m) => (m.type === "regle" ? m.regle : m.valeur);
+const detailProposition = (m) => (m.type === "regle" ? `Règle : ${m.regle}` : `${m.colonne} : ${m.valeur}`);
+
+// Proposition déjà dans le référentiel, ou déjà refusée ? (renvoie le texte à afficher, ou "")
+function dejaTraitee(m) {
+  const c = etat.classeur; if (!c) return "";
+  const lire = (onglet) => (c.Sheets[onglet] ? XLSX.utils.sheet_to_json(c.Sheets[onglet], { defval: "" }) : []);
+  const cible = normaliser(texteProposition(m));
+  if (!cible) return "";
+  if (m.type === "fiche") {
+    const ligne = lire("Contrats").find((l) => l["Contrat"] === m.contrat);
+    if (ligne && normaliser(ligne[m.colonne]) === cible) return "Déjà dans le référentiel";
+  } else if (lire("Règles_de_contrôle").some((l) => Object.values(l).some((v) => normaliser(v) === cible))) {
+    return "Déjà dans le référentiel";
+  }
+  const refusee = lire("Journal_activité").some((l) => normaliser(l["Action"]) === "proposition refusee" && normaliser(l["Détail"]).includes(cible))
+    || etat.refusees.some((r) => normaliser(r).includes(cible));
+  return refusee ? "Déjà refusée" : "";
+}
+
+// Date écrite dans le référentiel : la date de référence des données (cohérente pour la démo), sinon aujourd'hui.
+function dateJournal() {
+  const d = etat.faits && etat.faits.dateRef;
+  if (d instanceof Date && !isNaN(d)) { const x = new Date(d.getTime() + 12 * 3600e3); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; }
+  return aujourdhui();
+}
+
+// Refus : noté dans le journal d'activité (si le référentiel est le Google Sheet) et gardé pour la session,
+// pour que l'IA ne repropose pas la même chose.
+async function refuserModification(m) {
+  const texte = `${m.contrat || "Tous"} · ${detailProposition(m)}`;
+  if (!etat.sheetId) { etat.refusees.push(texte); return " (noté pour cette session)"; }
+  const base = `https://sheets.googleapis.com/v4/spreadsheets/${etat.sheetId}/values/`;
+  await google_req("POST", base + encodeURIComponent("'Journal_activité'!A:E") + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
+    { values: [[dateJournal(), "Chargé de facturation", "Proposition refusée", texteSur(m.contrat || "Tous"), texteSur(`${detailProposition(m)} (source : ${m.source || "non précisée"})`)]] });
+  etat.refusees.push(texte);
+  await chargerReferentielDrive();
+  return "";
+}
 
 async function appliquerModification(m) {
   if (!etat.sheetId) throw new Error("Impossible : le référentiel doit être le Google Sheet du Drive (bouton « Se connecter avec Google »).");
@@ -1204,12 +1265,12 @@ async function appliquerModification(m) {
     detail = `${m.colonne} : ${m.valeur} (source : ${m.source || "non précisée"})`;
   } else {
     await google_req("POST", base + encodeURIComponent("'Règles_de_contrôle'!A:E") + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-      { values: [[aujourdhui(), texteSur(m.regle), texteSur(m.contrat || "Tous"), texteSur(m.source || ""), "Chargé de facturation (via l'assistant)"]] });
+      { values: [[dateJournal(), texteSur(m.regle), texteSur(m.contrat || "Tous"), texteSur(m.source || ""), "Chargé de facturation (via l'assistant)"]] });
     detail = `Nouvelle règle de contrôle : ${m.regle} (source : ${m.source || "non précisée"})`;
   }
   // Trace dans le journal d'activité.
   await google_req("POST", base + encodeURIComponent("'Journal_activité'!A:E") + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-    { values: [[aujourdhui(), "Assistant facturation (validé par le chargé de facturation)", "Mise à jour référentiel", texteSur(m.contrat || "Tous"), texteSur(detail)]] });
+    { values: [[dateJournal(), "Assistant facturation (validé par le chargé de facturation)", "Mise à jour référentiel", texteSur(m.contrat || "Tous"), texteSur(detail)]] });
   await chargerReferentielDrive(); // l'agent verra la mise à jour à la question suivante
 }
 
