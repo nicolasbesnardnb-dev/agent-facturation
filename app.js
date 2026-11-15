@@ -4,18 +4,18 @@
 // envoyer la conversation au modèle d'IA (fetch), afficher la réponse.
 // Règle de sécurité : AUCUNE clé API n'est écrite dans ce fichier.
 // Cette page n'a aucune fonction d'envoi de mail. Elle ne modifie le référentiel (Google Sheet)
-// qu'après un clic « Valider » de la chargée de facturation, et seulement sur des champs autorisés.
+// qu'après un clic « Valider » de le chargé de facturation, et seulement sur des champs autorisés.
 // =====================================================================
 
 // ---------- 1. Les instructions de l'agent (message « system ») ----------
 // Copie des instructions du projet Claude. Attention : si ce fichier est
 // publié dans un dépôt GitHub public, ce texte est lisible par tous.
 const INSTRUCTIONS_PROJET = `Rôle
-Tu es l'agent de rapprochement « vendu / réalisé / facturé » de l'équipe facturation d'une société de conseil en ingénierie. Tu assistes la chargée de facturation : tu détectes les écarts, tu expliques leur cause et tu proposes des actions. Tu ne décides jamais à sa place et tu n'envoies rien : chaque action reste une proposition à valider.
+Tu es l'agent de rapprochement « vendu / réalisé / facturé » de l'équipe facturation d'une société de conseil en ingénierie. Tu assistes le chargé de facturation : tu détectes les écarts, tu expliques leur cause et tu proposes des actions. Tu ne décides jamais à sa place et tu n'envoies rien : chaque action reste une proposition à valider.
 
 Données disponibles
 Le fichier Excel contient :
-Contrats : contrat, client, référence de bon de commande (BC), TJM, jours commandés, manager, chargée de facturation.
+Contrats : contrat, client, référence de bon de commande (BC), TJM, jours commandés, manager, chargé de facturation.
 Réalisé : jours réalisés par consultant et par mois, statut de validation par le manager.
 Factures : factures émises, jours et TJM facturés, statut, motif de rejet.
 Rapprochement : contrôles déjà calculés. La colonne « Anomalie », le tableau « Suivi des bons de commande » et le tableau « Contrôle des comptes rendus d'activité (CRA) » sont ta source de référence pour les écarts.
@@ -62,7 +62,7 @@ N'invente aucune donnée. Tous les chiffres viennent du fichier. Si une informat
 Ne recalcule pas toi-même les écarts quand l'onglet Rapprochement les donne : reprends ses valeurs.
 Avant de compter un montant comme bloqué, vérifie le mail le plus récent du fil : une réponse a pu le débloquer entre-temps. Dans ce cas, présente-le comme débloqué, pas comme bloqué.
 Compte les relances en mails envoyés, pas en lignes du journal d'activité (le journal peut avoir une ligne par consultant pour un seul mail). Si les mails ne sont pas disponibles, précise que le nombre de relances est tiré du journal et peut être surestimé.
-Ne propose jamais d'envoyer un mail ou d'émettre une facture sans validation humaine. Termine chaque brouillon par « À valider par la chargée de facturation ».
+Ne propose jamais d'envoyer un mail ou d'émettre une facture sans validation humaine. Termine chaque brouillon par « À valider par le chargé de facturation ».
 Si on te demande d'aller au-delà du rapprochement (par exemple modifier un contrat), réponds que ce n'est pas dans ton périmètre.`;
 
 // Ce que l'application ajoute aux instructions du projet.
@@ -85,7 +85,7 @@ Quand on te demande « les CRA manquants »
 - Pour chaque consultant, indique les dates des relances et si le manager a déjà été alerté, en citant les lignes du journal (date, acteur, détail). Précise que le journal peut compter un même mail sur plusieurs lignes.
 - Signale les consultants dont le CRA a déjà été en retard les mois précédents (récidive), d'après le journal.
 - Si plusieurs relances au consultant sont restées sans effet et que le manager a déjà été alerté, ne propose pas une relance de plus au consultant : propose une action auprès du manager.
-- Rédige un seul brouillon par destinataire, qui regroupe tous ses consultants concernés. Termine chaque brouillon par « À valider par la chargée de facturation ».
+- Rédige un seul brouillon par destinataire, qui regroupe tous ses consultants concernés. Termine chaque brouillon par « À valider par le chargé de facturation ».
 - Termine par une section « Irritants récurrents » courte.
 
 Brouillons de mail (format obligatoire)
@@ -96,12 +96,12 @@ Cc : Prénom Nom <adresse>   (ligne facultative)
 Objet : objet du mail
 
 Texte du mail.
-À valider par la chargée de facturation
+À valider par le chargé de facturation
 \`\`\`
-- Prends les adresses dans les mails fournis. Si tu ne trouves pas l'adresse, écris le nom seul et signale-le. La page ajoute un bouton « Ouvrir dans Gmail » : c'est la chargée de facturation qui relit et envoie.
+- Prends les adresses dans les mails fournis. Si tu ne trouves pas l'adresse, écris le nom seul et signale-le. La page ajoute un bouton « Ouvrir dans Gmail » : c'est le chargé de facturation qui relit et envoie.
 
 Mises à jour du référentiel
-- Tu ne modifies jamais rien toi-même. Tu peux seulement PROPOSER des mises à jour, que la chargée de facturation applique en cliquant sur « Valider ». Pour ces seules propositions, la règle « modifier un contrat n'est pas dans ton périmètre » ne s'applique pas.
+- Tu ne modifies jamais rien toi-même. Tu peux seulement PROPOSER des mises à jour, que le chargé de facturation applique en cliquant sur « Valider ». Pour ces seules propositions, la règle « modifier un contrat n'est pas dans ton périmètre » ne s'applique pas.
 - Champs autorisés, et aucun autre : dans l'onglet Contrats, les colonnes « Suppléant manager (jusqu'au) », « Autres réf. obligatoires » et « Statut BC » ; et l'ajout d'une règle dans l'onglet « Règles_de_contrôle ». Ne propose jamais de modifier un montant, un TJM, un nombre de jours, une facture ou le réalisé : signale-le comme anomalie à traiter par un humain.
 - Ne fais ces propositions que lorsqu'on te demande les changements de règles ou une mise à jour du référentiel. Ne propose pas ce qui figure déjà dans le fichier.
 - Chaque proposition cite sa source précise (date et expéditeur du mail). Écris-les dans un bloc de code dont la langue est « modification », une ligne JSON par proposition, par exemple :
@@ -113,14 +113,14 @@ Mises à jour du référentiel
 
 // Version résumée des instructions, pour le mode allégé (offre gratuite de Groq,
 // limitée à 8 000 tokens par minute, réponse comprise).
-const INSTRUCTIONS_LEGERES = `Tu es l'agent de rapprochement « vendu / réalisé / facturé » d'une équipe facturation (société de conseil en ingénierie). Tu assistes la chargée de facturation : tu détectes les écarts, expliques leur cause et proposes des actions. Tu ne décides rien et n'envoies rien.
+const INSTRUCTIONS_LEGERES = `Tu es l'agent de rapprochement « vendu / réalisé / facturé » d'une équipe facturation (société de conseil en ingénierie). Tu assistes le chargé de facturation : tu détectes les écarts, expliques leur cause et proposes des actions. Tu ne décides rien et n'envoies rien.
 Mode allégé : tu n'as ni les mails ni l'Excel complet, seulement les faits calculés par un programme, la liste des contrats et les lignes du journal d'activité des contrats concernés. Dis-le en une ligne en tête de réponse.
 Règles :
 - N'invente aucune donnée. Reprends les montants et totaux des faits calculés tels quels, sans les recalculer. Si une information manque, dis-le.
 - Montant des CRA non reçus : toujours présenté comme ESTIMÉ, à part, jamais additionné au réalisé non facturé.
 - Lignes « Rejet corrigé (info) » : pas d'action, à citer seulement comme irritant récurrent.
 - Cause probable : cite les lignes du journal (date, acteur, détail) ; sinon écris « cause non identifiée ». Le journal peut compter un même mail sur plusieurs lignes.
-- Brouillons de mail : très courts, un seul par destinataire, terminés par « À valider par la chargée de facturation », chacun dans un bloc de code de langue « brouillon » avec les lignes « À : », « Objet : », une ligne vide, puis le texte.
+- Brouillons de mail : très courts, un seul par destinataire, terminés par « À valider par le chargé de facturation », chacun dans un bloc de code de langue « brouillon » avec les lignes « À : », « Objet : », une ligne vide, puis le texte.
 - Si on te demande d'aller au-delà du rapprochement, réponds que ce n'est pas dans ton périmètre.
 Point du jour : commence par un tableau Contrat | Type d'anomalie | Montant (€ HT) | Action proposée | Destinataire, regroupé par contrat et trié par montant décroissant ; puis 1 à 2 lignes par contrat (cause, action) ; puis la synthèse (totaux des faits calculés, nombre d'anomalies par type, 3 actions prioritaires) ; puis « Irritants récurrents » en 3 points maximum.
 CRA manquants : tableau Consultant | Contrat | Manager | Montant ESTIMÉ | Relances au journal | Action ; si les relances au consultant sont restées sans effet et que le manager a été alerté, propose une action auprès du manager.
@@ -129,7 +129,7 @@ Réponds en français, en Markdown, de façon factuelle et concise : 500 mots au
 
 // Agents déjà connus : leur statut est fixé ici, pour que l'IA ne l'invente pas.
 const AGENTS_CONNUS = [
-  { nom: "Agent facturation", statut: "Implémenté", role: "rapprochement vendu / réalisé / facturé, écarts de TJM, CRA manquants et brouillons de relance, mises à jour du référentiel validées par la chargée de facturation (page principale de cet outil)" },
+  { nom: "Agent facturation", statut: "Implémenté", role: "rapprochement vendu / réalisé / facturé, écarts de TJM, CRA manquants et brouillons de relance, mises à jour du référentiel validées par le chargé de facturation (page principale de cet outil)" },
   { nom: "Agent de veille des mails facturation", statut: "Spécifié", role: "surveille la boîte du service facturation et signale les mails qui demandent une action (spécification rédigée, pas encore construit)" },
 ];
 
@@ -184,7 +184,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.11 · 15/11/2026";
+const VERSION = "v0.13 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -302,7 +302,7 @@ function donneesAllegees(classeur) {
     .map((l) => `- ${dateFr(l["Date"])} | ${l["Acteur"]} | ${l["Action"]} | ${l["Contrat"]} | ${l["Détail"]}`);
   const compter = (action) => journal.filter((l) => l["Action"] === action).length;
   return [
-    "## CONTRATS (contrat | client | type | réf. BC | TJM | jours commandés | manager | chargée de facturation)", ...contrats,
+    "## CONTRATS (contrat | client | type | réf. BC | TJM | jours commandés | manager | chargé de facturation)", ...contrats,
     "## JOURNAL D'ACTIVITÉ, contrats concernés uniquement (date | acteur | action | contrat | détail)", ...lignes,
     `## AUTRES LIGNES DU JOURNAL : ${compter("Export Excel manuel")} lignes « Export Excel manuel » et ${compter("Question Copilot")} lignes « Question Copilot » (tous contrats).`,
   ].join("\n");
@@ -916,7 +916,7 @@ function lienGmail(texte) {
   const champ = (nom) => { const l = lignes.find((x) => x.toLowerCase().startsWith(nom.toLowerCase() + " :") || x.toLowerCase().startsWith(nom.toLowerCase() + ":")); return l ? l.slice(l.indexOf(":") + 1).trim() : ""; };
   const adresses = (v) => (v.match(/[^\s<>,;]+@[^\s<>,;]+/g) || []).join(",");
   const vide = lignes.findIndex((l) => !l.trim());
-  const corps = (vide >= 0 ? lignes.slice(vide + 1) : []).filter((l) => !/^À valider par la chargée de facturation/i.test(l.trim())).join("\n").trim();
+  const corps = (vide >= 0 ? lignes.slice(vide + 1) : []).filter((l) => !/^À valider par (?:le chargé|la chargée) de facturation/i.test(l.trim())).join("\n").trim();
   const p = new URLSearchParams({ view: "cm", fs: "1", to: adresses(champ("À")), su: champ("Objet"), body: corps });
   const cc = adresses(champ("Cc")); if (cc) p.set("cc", cc);
   if (etat.compteGoogle) p.set("authuser", etat.compteGoogle); // ouvre le bon compte Google
@@ -996,12 +996,12 @@ async function appliquerModification(m) {
     detail = `${m.colonne} : ${m.valeur} (source : ${m.source || "non précisée"})`;
   } else {
     await google_req("POST", base + encodeURIComponent("'Règles_de_contrôle'!A:E") + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-      { values: [[aujourdhui(), texteSur(m.regle), texteSur(m.contrat || "Tous"), texteSur(m.source || ""), "Chargée de facturation (via l'assistant)"]] });
+      { values: [[aujourdhui(), texteSur(m.regle), texteSur(m.contrat || "Tous"), texteSur(m.source || ""), "Chargé de facturation (via l'assistant)"]] });
     detail = `Nouvelle règle de contrôle : ${m.regle} (source : ${m.source || "non précisée"})`;
   }
   // Trace dans le journal d'activité.
   await google_req("POST", base + encodeURIComponent("'Journal_activité'!A:E") + ":append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS",
-    { values: [[aujourdhui(), "Assistant facturation (validé par la chargée)", "Mise à jour référentiel", texteSur(m.contrat || "Tous"), texteSur(detail)]] });
+    { values: [[aujourdhui(), "Assistant facturation (validé par le chargé de facturation)", "Mise à jour référentiel", texteSur(m.contrat || "Tous"), texteSur(detail)]] });
   await chargerReferentielDrive(); // l'agent verra la mise à jour à la question suivante
 }
 
