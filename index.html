@@ -93,7 +93,11 @@
     #pageConnexion { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--bg);
       padding: 16px max(16px, calc((100% - 1000px) / 2)); }
     #pageConnexion[hidden] { display: none; }
-    #pageConnexion .ok, #reglages .ok { margin-top: 18px; text-align: right; }
+    /* Bouton OK fixé en bas à droite de l'écran : il ne bouge plus quand le contenu change */
+    #pageConnexion .ok, #reglages .ok { position: fixed; z-index: 51; bottom: 0; left: 0; right: 0; text-align: right;
+      padding: 12px max(16px, calc((100% - 1000px) / 2)); background: var(--bg); border-top: 1px solid var(--border); }
+    #pageConnexion .ok button, #reglages .ok button { margin-top: 0; }
+    #pageConnexion, #reglages[open] { padding-bottom: 80px !important; }
     .compteEntete:empty { display: none; }
     .modeleActif.compteEntete { margin-bottom: 0; }
     .titreReglages { display: flex; justify-content: space-between; align-items: center; }
@@ -272,7 +276,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.33 · 15/11/2026</span></p>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.34 · 15/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
