@@ -86,6 +86,7 @@ Quand on te demande « les CRA manquants »
 - Signale les consultants dont le CRA a déjà été en retard les mois précédents (récidive), d'après le journal.
 - Si plusieurs relances au consultant sont restées sans effet et que le manager a déjà été alerté, ne propose pas une relance de plus au consultant : propose une action auprès du manager.
 - Rédige un seul brouillon par destinataire, qui regroupe tous ses consultants concernés. Termine chaque brouillon par « À valider par le chargé de facturation ».
+- Dans chaque brouillon, vouvoie toujours le destinataire. Salue-le uniquement par son prénom (exemple : « Bonjour Samir, »), pris dans le référentiel (onglets Contrats, Consultants, Journal_activité) : dans les mails, les noms sont souvent abrégés (« S. Kader » = Samir Kader). Si tu ne trouves pas son prénom, écris simplement « Bonjour, ». N'utilise jamais une initiale seule (« Bonjour S., » est interdit).
 - Termine par une section « Irritants récurrents » courte.
 
 Brouillons de mail (format obligatoire)
@@ -120,7 +121,7 @@ Règles :
 - Montant des CRA non reçus : toujours présenté comme ESTIMÉ, à part, jamais additionné au réalisé non facturé.
 - Lignes « Rejet corrigé (info) » : pas d'action, à citer seulement comme irritant récurrent.
 - Cause probable : cite les lignes du journal (date, acteur, détail) ; sinon écris « cause non identifiée ». Le journal peut compter un même mail sur plusieurs lignes.
-- Brouillons de mail : très courts, un seul par destinataire, terminés par « À valider par le chargé de facturation », chacun dans un bloc de code de langue « brouillon » avec les lignes « À : », « Objet : », une ligne vide, puis le texte.
+- Brouillons de mail : très courts, un seul par destinataire, terminés par « À valider par le chargé de facturation », chacun dans un bloc de code de langue « brouillon » avec les lignes « À : », « Objet : », une ligne vide, puis le texte. Dans chaque brouillon, vouvoie toujours le destinataire. Salue-le uniquement par son prénom (exemple : « Bonjour Samir, »), pris dans le référentiel (onglets Contrats, Consultants, Journal_activité) : dans les mails, les noms sont souvent abrégés (« S. Kader » = Samir Kader). Si tu ne trouves pas son prénom, écris simplement « Bonjour, ». N'utilise jamais une initiale seule (« Bonjour S., » est interdit).
 - Si on te demande d'aller au-delà du rapprochement, réponds que ce n'est pas dans ton périmètre.
 Point du jour : commence par un tableau Contrat | Type d'anomalie | Montant (€ HT) | Action proposée | Destinataire, regroupé par contrat et trié par montant décroissant ; puis 1 à 2 lignes par contrat (cause, action) ; puis la synthèse (totaux des faits calculés, nombre d'anomalies par type, 3 actions prioritaires) ; puis « Irritants récurrents » en 3 points maximum.
 CRA manquants : tableau Consultant | Contrat | Manager | Montant ESTIMÉ | Relances au journal | Action ; si les relances au consultant sont restées sans effet et que le manager a été alerté, propose une action auprès du manager.
@@ -204,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.15 · 15/11/2026";
+const VERSION = "v0.18 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -283,9 +284,7 @@ $("listModels").addEventListener("click", async () => {
   $("modelStatus").textContent = "Recherche des modèles…";
   try {
     const adresse = FOURNISSEURS[fournisseur].modeles;
-    const entetes = fournisseur === "claude"
-      ? { "x-api-key": cle, "anthropic-version": "2026-10-21", "anthropic-dangerous-direct-browser-access": "true" }
-      : { "authorization": "Bearer " + cle };
+    const entetes = entetesFournisseur(fournisseur, cle);
     const reponse = await fetch(adresse, { headers: entetes });
     const donnees = await lireJson(reponse);
     if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
@@ -314,6 +313,39 @@ $("saveKey").addEventListener("click", () => {
 $("forgetKey").addEventListener("click", () => {
   memoire.effacer(cleStockage());
   afficherEtatCle();
+});
+
+// Bouton « ⚙ Réglages » en haut à droite : ouvre ou ferme le panneau.
+$("btnReglages").addEventListener("click", () => {
+  $("reglages").open = !$("reglages").open;
+  if ($("reglages").open) $("reglages").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("fermerReglages").addEventListener("click", () => { $("reglages").open = false; });
+
+// Entêtes d'accès au fournisseur (la clé sert de badge).
+function entetesFournisseur(fournisseur, cle) {
+  return fournisseur === "claude"
+    ? { "x-api-key": cle, "anthropic-version": "2026-10-21", "anthropic-dangerous-direct-browser-access": "true" }
+    : { "authorization": "Bearer " + cle };
+}
+
+// Tester la clé : demande la liste des modèles au fournisseur. Aucune question n'est posée à l'IA, donc rien n'est facturé.
+// On teste la clé collée dans le champ si elle y est, sinon la clé enregistrée.
+$("testKey").addEventListener("click", async () => {
+  const fournisseur = $("provider").value;
+  const saisie = $("apiKey").value.trim();
+  const cle = saisie || memoire.lire(cleStockage());
+  if (!cle) { $("keyStatus").textContent = "Aucune clé à tester : collez-la dans le champ ou enregistrez-la."; return; }
+  $("keyStatus").textContent = "Test de la clé en cours…";
+  try {
+    const reponse = await fetch(FOURNISSEURS[fournisseur].modeles, { headers: entetesFournisseur(fournisseur, cle) });
+    const donnees = await lireJson(reponse);
+    if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
+    const nb = (donnees.data || []).length;
+    $("keyStatus").textContent = "✓ Clé valide" + (saisie ? " (clé du champ, pas encore enregistrée)" : " (clé enregistrée)") + " : " + nb + " modèle" + (nb > 1 ? "s" : "") + " accessible" + (nb > 1 ? "s" : "") + ".";
+  } catch (e) {
+    $("keyStatus").textContent = "✗ Clé refusée ou fournisseur injoignable. " + e.message;
+  }
 });
 
 // ---------- 5. Lecture du fichier Excel (dans le navigateur) ----------

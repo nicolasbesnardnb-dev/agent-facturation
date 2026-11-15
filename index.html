@@ -65,7 +65,17 @@
     .quick button { margin-right: 6px; }
     .entete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
     .entete h1 { flex: 1 1 auto; }
-    #btnAdmin { margin-top: 0; white-space: nowrap; }
+    .boutonsEntete { display: flex; gap: 8px; flex-wrap: wrap; }
+    .boutonsEntete button { margin-top: 0; white-space: nowrap; }
+    /* Réglages : ouverts par le bouton « ⚙ Réglages » en haut à droite, invisibles quand ils sont fermés */
+    #reglages > summary { display: none; }
+    #reglages:not([open]) { display: none; }
+    .titreReglages { display: flex; justify-content: space-between; align-items: center; }
+    .titreReglages h2 { margin: 0; }
+    .titreReglages button { margin-top: 0; }
+    .saisie { display: flex; gap: 8px; align-items: stretch; }
+    .saisie textarea { flex: 1; }
+    .saisie button { margin-top: 0; align-self: flex-end; }
     dialog { border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; max-width: 360px; width: calc(100% - 32px); background: var(--panel, #fff); color: inherit; }
     dialog::backdrop { background: rgba(0,0,0,.35); }
     dialog label { display: block; margin-top: 10px; }
@@ -101,16 +111,23 @@
       <path d="M12 23l3 3 6-7"/>
     </svg>
     Assistant du service facturation
-  <span class="version" id="version" title="Version de la page">v0.15 · 15/11/2026</span>
+  <span class="version" id="version" title="Version de la page">v0.18 · 15/11/2026</span>
   </h1>
   <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
-  <button id="btnAdmin" class="secondary" title="Accès responsable du service">📊 Diagnostic des irritants</button>
+  <div class="boutonsEntete">
+    <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
+    <button id="btnAdmin" class="secondary" title="Accès responsable du service">📊 Diagnostic des irritants</button>
+  </div>
   </div>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, le chargé de facturation décide.</p>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
   <details class="panel" id="reglages">
     <summary>⚙ Réglages (modèle d'IA et clé)</summary>
+    <div class="titreReglages">
+      <h2>⚙ Réglages : modèle d'IA et clé</h2>
+      <button id="fermerReglages" class="secondary">Fermer</button>
+    </div>
     <div class="row">
       <div>
         <label for="provider">Fournisseur</label>
@@ -139,6 +156,7 @@
     <input type="password" id="apiKey" autocomplete="off" placeholder="Collez votre clé ici">
     <button id="saveKey">Enregistrer la clé</button>
     <button id="forgetKey" class="secondary">Oublier la clé</button>
+    <button id="testKey" class="secondary" title="Vérifie la clé auprès du fournisseur, sans poser de question à l'IA (gratuit)">Tester la clé</button>
     <div class="status" id="keyStatus"></div>
   </details>
 
@@ -205,9 +223,12 @@
     </div>
     <p class="hint aideDonnees">Connectez-vous à vos données pour utiliser l'assistant.</p>
     <label for="question">Votre question</label>
-    <textarea id="question" placeholder="Ex. : pourquoi le contrat CT-2026-005 est-il en dépassement ?"></textarea>
-    <div class="envoi">
+    <div class="saisie">
+      <textarea id="question" placeholder="Ex. : pourquoi le contrat CT-2026-005 est-il en dépassement ?"></textarea>
       <button id="send">Envoyer</button>
+    </div>
+    <div class="envoi">
+      <span></span>
       <button id="btnReset" class="discret" title="Efface les échanges ; les données chargées restent">Effacer la conversation</button>
     </div>
     <div class="status" id="sendStatus"></div>
