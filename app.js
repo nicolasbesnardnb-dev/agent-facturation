@@ -184,7 +184,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.13 · 15/11/2026";
+const VERSION = "v0.14 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -199,10 +199,30 @@ const memoire = {
 // ---------- 4. Réglages : fournisseur, modèle, clé ----------
 function cleStockage() { return "agentFactu.cle." + $("provider").value; }
 
+// Modèles proposés par défaut dans la liste déroulante (le bouton « Actualiser » la remplace par ceux de votre clé).
+const MODELES_PROPOSES = {
+  claude: [
+    { id: "claude-opus-5-5", nom: "Claude Opus 5.5 : le plus poussé, environ 2 fois plus cher" },
+    { id: "claude-sonnet-5-5", nom: "Claude Sonnet 5.5 : bon équilibre qualité / prix" },
+    { id: "claude-haiku-5-5", nom: "Claude Haiku 5.5 : le plus rapide et le moins cher" },
+  ],
+  groq: [{ id: "openai/gpt-oss-120b", nom: "GPT-OSS 120B (Groq)" }],
+};
+// Remplit la liste déroulante ; le modèle choisi reste sélectionné même s'il n'est pas dans la liste.
+function remplirModeles(modeles, choisi) {
+  const liste = modeles.slice();
+  if (choisi && !liste.some((m) => m.id === choisi)) liste.unshift({ id: choisi, nom: choisi });
+  $("model").replaceChildren(...liste.map((m) => {
+    const o = document.createElement("option"); o.value = m.id; o.textContent = m.nom; return o;
+  }));
+  $("model").value = choisi || liste[0].id;
+}
+function modeleMemorise(f) { return memoire.lire("agentFactu.modele." + f) || FOURNISSEURS[f].modele; }
+
 function chargerReglages() {
   const fournisseur = memoire.lire("agentFactu.fournisseur") || "claude";
   $("provider").value = fournisseur;
-  $("model").value = memoire.lire("agentFactu.modele." + fournisseur) || FOURNISSEURS[fournisseur].modele;
+  remplirModeles(MODELES_PROPOSES[fournisseur], modeleMemorise(fournisseur));
   $("effort").value = memoire.lire("agentFactu.effort") || "medium";
   afficherEtatCle();
 }
@@ -228,7 +248,7 @@ function afficherEtatCle() {
 $("provider").addEventListener("change", () => {
   memoire.ecrire("agentFactu.fournisseur", $("provider").value);
   const f = $("provider").value;
-  $("model").value = memoire.lire("agentFactu.modele." + f) || FOURNISSEURS[f].modele;
+  remplirModeles(MODELES_PROPOSES[f], modeleMemorise(f));
   afficherEtatCle();
 });
 // Demande au fournisseur la liste des modèles auxquels votre clé donne accès.
@@ -245,18 +265,18 @@ $("listModels").addEventListener("click", async () => {
     const reponse = await fetch(adresse, { headers: entetes });
     const donnees = await lireJson(reponse);
     if (!reponse.ok) throw new Error(expliquerErreur(reponse.status, donnees));
-    const noms = (donnees.data || []).map((m) => m.id).sort();
-    $("modelList").replaceChildren(...noms.map((n) => { const o = document.createElement("option"); o.value = n; return o; }));
-    $("modelStatus").textContent = noms.length
-      ? "Modèles accessibles avec votre clé : " + noms.join(", ") + ". Cliquez dans le champ « Nom du modèle » pour en choisir un."
-      : "Aucun modèle renvoyé par le fournisseur.";
+    const modeles = (donnees.data || []).map((m) => ({ id: m.id, nom: m.display_name ? m.display_name + " (" + m.id + ")" : m.id }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    if (!modeles.length) { $("modelStatus").textContent = "Aucun modèle renvoyé par le fournisseur."; return; }
+    remplirModeles(modeles, $("model").value);
+    $("modelStatus").textContent = modeles.length + " modèles accessibles avec votre clé : choisissez-en un dans la liste.";
   } catch (e) {
     $("modelStatus").textContent = e.message;
   }
 });
 
 $("model").addEventListener("change", () => {
-  memoire.ecrire("agentFactu.modele." + $("provider").value, $("model").value.trim());
+  memoire.ecrire("agentFactu.modele." + $("provider").value, $("model").value);
 });
 $("saveKey").addEventListener("click", () => {
   const cle = $("apiKey").value.trim();
