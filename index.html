@@ -34,7 +34,13 @@
     .badge.connecte { background: var(--ok-bg); color: var(--ok); }
     .badge.expire { background: var(--warn-bg); color: var(--warn); }
     button.discret { background: transparent; border-color: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; padding: 4px 6px; }
-    .sub { color: var(--muted); margin: 0 0 16px; }
+    .sub { color: var(--muted); margin: 0; }
+    /* Bandeau du haut : reste figé, seul le contenu en dessous défile */
+    .bandeau { margin: -16px -16px 16px; padding: 16px 16px 12px; background: var(--bg); border-bottom: 1px solid var(--border); }
+    @media (min-width: 700px) and (min-height: 560px) {
+      html { scroll-padding-top: calc(var(--hauteurBandeau, 0px) + 8px); }
+      .bandeau { position: sticky; top: 0; z-index: 40; box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+    }
     section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
       padding: 14px; margin-bottom: 14px; }
     section h2 { font-size: 1rem; margin: 0 0 10px; }
@@ -132,6 +138,7 @@
 </head>
 <body>
 <main>
+  <header class="bandeau">
   <div class="entete">
   <h1>
     <!-- Pictogramme original : une facture avec une coche -->
@@ -153,6 +160,7 @@
   <p class="modeleActif compteEntete" id="compteEntete"></p>
   <p class="modeleActif" id="modeleActif"></p>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé<br>L'assistant propose, le chargé de facturation décide.</p>
+  </header>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Ouverts seulement par le bouton (ou si une question est posée sans clé). -->
   <details class="panel" id="reglages">
@@ -277,7 +285,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.35 · 15/11/2026</span></p>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.36 · 15/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

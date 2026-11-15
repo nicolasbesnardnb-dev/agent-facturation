@@ -209,7 +209,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.35 · 15/11/2026";
+const VERSION = "v0.36 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -1415,6 +1415,9 @@ $("btnDiag").addEventListener("click", async () => {
 });
 
 chargerReglages();
+
+// Hauteur du bandeau figé : sert à ne pas cacher le début d'une réponse quand la page y défile.
+if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty("--hauteurBandeau", document.querySelector(".bandeau").offsetHeight + "px")).observe(document.querySelector(".bandeau"));
 
 // Ouverte depuis l'ordinateur (file://), la page ne peut pas se connecter à Google : on montre le chargement local.
 if (location.protocol === "file:") {
