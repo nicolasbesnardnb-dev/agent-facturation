@@ -97,7 +97,7 @@
       <path d="M12 23l3 3 6-7"/>
     </svg>
     Assistant du service facturation
-  <span class="version" id="version" title="Version de la page">v0.8 · 15/11/2026</span>
+  <span class="version" id="version" title="Version de la page">v0.9 · 15/11/2026</span>
   </h1>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
 
@@ -167,6 +167,7 @@
       <p class="hint">L'IA analyse les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants et propose des agents pour y remédier. Données fictives.</p>
       <div class="signaux" id="signaux"><p class="status">Connectez-vous à vos données pour voir les signaux mesurés.</p></div>
       <button id="btnDiag">Analyser les irritants</button>
+      <p class="hint aideDonnees">Connectez-vous à vos données pour lancer l'analyse.</p>
       <div class="status" id="diagStatus"></div>
       <div id="diagResultat" class="msg assistant" hidden></div>
     </section>
@@ -182,6 +183,7 @@
       <button id="btnCRA" class="secondary">Relancer les CRA manquants</button>
       <button id="btnRegles" class="secondary">Mettre à jour le référentiel</button>
     </div>
+    <p class="hint aideDonnees">Connectez-vous à vos données pour utiliser l'assistant.</p>
     <label for="question">Votre question</label>
     <textarea id="question" placeholder="Ex. : pourquoi le contrat CT-2026-005 est-il en dépassement ?"></textarea>
     <div class="envoi">

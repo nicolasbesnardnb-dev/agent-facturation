@@ -184,7 +184,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.8 · 15/11/2026";
+const VERSION = "v0.9 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -289,6 +289,7 @@ function chargerClasseur(octets, nom) {
   etat.donneesLegeres = donneesAllegees(classeur);
   etat.faits = calculerFaits(classeur);
   afficherFaits(etat.faits);
+  majBoutons();
   $("fileStatus").textContent = `Fichier chargé : ${nom} (${classeur.SheetNames.length} onglets). Il reste dans ce navigateur ; il sera envoyé au modèle d'IA avec chaque question.`;
 }
 
@@ -653,6 +654,7 @@ $("btnDeconnexion").addEventListener("click", () => {
   $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = "";
   $("factsSection").hidden = true; $("factsResume").replaceChildren(); $("facts").replaceChildren();
   etat.classeur = null; etat.signaux = null;
+  majBoutons();
   $("signaux").replaceChildren(Object.assign(document.createElement("p"), { className: "status", textContent: "Connectez-vous à vos données pour voir les signaux mesurés." }));
   $("diagResultat").replaceChildren(); $("diagResultat").hidden = true; $("diagStatus").textContent = "";
   $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
@@ -1135,9 +1137,21 @@ async function envoyer(question) {
   }
 }
 
+// Boutons qui ont besoin des données : grisés tant que le référentiel n'est pas chargé.
+const BOUTONS_DONNEES = ["send", "btnPoint", "btnRegles", "btnCRA", "btnDiag"];
+let occupeEnCours = false;
 function basculer(occupe) {
-  ["send", "btnPoint", "btnRegles", "btnCRA", "btnReset", "btnDiag"].forEach((id) => ($(id).disabled = occupe));
+  occupeEnCours = occupe;
+  const sansDonnees = !etat.classeur;
+  BOUTONS_DONNEES.forEach((id) => {
+    $(id).disabled = occupe || sansDonnees;
+    $(id).title = sansDonnees ? "Connectez-vous d'abord à vos données" : "";
+  });
+  $("btnReset").disabled = occupe;
+  document.querySelectorAll(".aideDonnees").forEach((p) => (p.hidden = !sansDonnees));
 }
+// À appeler quand les données sont chargées ou effacées.
+function majBoutons() { basculer(occupeEnCours); }
 
 $("send").addEventListener("click", () => envoyer($("question").value));
 $("question").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) envoyer($("question").value); });
@@ -1199,3 +1213,6 @@ if (location.protocol === "file:") {
   $("btnGoogle").disabled = true;
   $("googleStatus").textContent = "Page ouverte depuis l'ordinateur : la connexion Google ne fonctionne que sur la page en ligne. Chargez les fichiers ci-dessous.";
 }
+
+// Au démarrage : rien n'est chargé, les boutons sont grisés.
+majBoutons();
