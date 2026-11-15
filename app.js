@@ -504,7 +504,23 @@ function afficherEtatGoogle(etatConnexion, texte) {
   const svg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES_ETAT[etatConnexion]}</svg>`;
   badge.innerHTML = svg; // icône fixe, écrite dans ce fichier
   badge.append(document.createTextNode(texte)); // le nom du compte est inséré comme texte, jamais comme HTML
+  $("btnDeconnexion").hidden = etatConnexion === "deconnecte";
 }
+
+// Déconnexion : la page oublie l'accès Google et efface les données chargées depuis Google et la conversation.
+$("btnDeconnexion").addEventListener("click", () => {
+  jetonGoogle = null;
+  clearTimeout(minuteurExpiration);
+  etat.compteGoogle = ""; etat.sheetId = null; etat.mails = []; etat.faits = null;
+  etat.donneesTexte = ""; etat.donneesLegeres = ""; etat.historique = []; etat.appliquees = new Set();
+  $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = "";
+  $("factsSection").hidden = true; $("factsResume").replaceChildren(); $("facts").replaceChildren();
+  $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
+  $("fileStatus").textContent = "Aucun fichier chargé.";
+  $("mailsStatus").textContent = "";
+  afficherNoticeMails();
+  afficherEtatGoogle("deconnecte", "Déconnecté");
+});
 afficherEtatGoogle("deconnecte", "Déconnecté");
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
 
