@@ -63,9 +63,14 @@
     .msg.assistant { background: var(--panel); }
     .msg .who { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
     .quick button { margin-right: 6px; }
-    .onglets { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 4px 0 14px; flex-wrap: wrap; }
-    .onglet { background: transparent; color: var(--muted); border: none; border-bottom: 3px solid transparent; border-radius: 0; margin: 0 0 -2px; padding: 10px 14px; font-weight: 600; }
-    .onglet.actif { color: var(--accent); border-bottom-color: var(--accent); }
+    .entete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .entete h1 { flex: 1 1 auto; }
+    #btnAdmin { margin-top: 0; white-space: nowrap; }
+    dialog { border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; max-width: 360px; width: calc(100% - 32px); background: var(--panel, #fff); color: inherit; }
+    dialog::backdrop { background: rgba(0,0,0,.35); }
+    dialog label { display: block; margin-top: 10px; }
+    dialog input { width: 100%; }
+    .simule { font-size: .85rem; color: #8a5300; background: #fff4e0; border-radius: 6px; padding: 6px 8px; }
     .attente::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
       background: var(--accent); animation: pulse 1s ease-in-out infinite; vertical-align: middle; }
     @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.1); } }
@@ -86,6 +91,7 @@
 </head>
 <body>
 <main>
+  <div class="entete">
   <h1>
     <!-- Pictogramme original : une facture avec une coche -->
     <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -95,8 +101,11 @@
       <path d="M12 23l3 3 6-7"/>
     </svg>
     Assistant du service facturation
-  <span class="version" id="version" title="Version de la page">v0.10 · 15/11/2026</span>
+  <span class="version" id="version" title="Version de la page">v0.11 · 15/11/2026</span>
   </h1>
+  <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
+  <button id="btnAdmin" class="secondary" title="Accès responsable du service">📊 Diagnostic des irritants</button>
+  </div>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
@@ -153,15 +162,27 @@
     </details>
   </section>
 
-  <!-- Deux onglets : 1. le diagnostic (quels irritants ?), 2. l'agent qui traite le premier d'entre eux -->
-  <nav class="onglets" role="tablist">
-    <button class="onglet actif" id="ongletDiag" role="tab">1. Diagnostic des irritants</button>
-    <button class="onglet" id="ongletAgent" role="tab">2. Agent facturation</button>
-  </nav>
+  <!-- Connexion responsable SIMULÉE : la page est publique, ce n'est pas une protection réelle -->
+  <dialog id="dlgAdmin">
+    <form id="formAdmin" method="dialog">
+      <h2 style="margin-top:0">Accès responsable</h2>
+      <p class="simule">Connexion simulée pour la démonstration : ce n'est pas une vraie protection.</p>
+      <label for="adminId">Identifiant</label>
+      <input id="adminId" type="text" autocomplete="off">
+      <label for="adminMdp">Mot de passe</label>
+      <input id="adminMdp" type="password" autocomplete="off">
+      <div class="error" id="adminErreur" hidden>Identifiant ou mot de passe incorrect.</div>
+      <div class="envoi">
+        <button id="adminOk" type="submit">Se connecter</button>
+        <button id="adminAnnuler" type="button" class="secondary">Annuler</button>
+      </div>
+    </form>
+  </dialog>
 
-  <div id="vueDiag">
+  <!-- Vue du responsable : diagnostic des irritants -->
+  <div id="vueDiag" hidden>
     <section>
-      <h2>Qu'est-ce qui freine le service facturation ?</h2>
+      <h2>Diagnostic des irritants · qu'est-ce qui freine le service facturation ?</h2>
       <p class="hint">L'IA lit elle-même les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants, les compte et propose des agents pour y remédier. Les mails ne sont pas utilisés. Données fictives.</p>
       <button id="btnDiag">Analyser les irritants</button>
       <p class="hint aideDonnees">Connectez-vous à vos données pour lancer l'analyse.</p>
@@ -170,7 +191,7 @@
     </section>
   </div>
 
-  <div id="vueAgent" hidden>
+  <div id="vueAgent">
   <!-- La conversation -->
   <section>
     <h2>Que souhaitez-vous faire ?</h2>

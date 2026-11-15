@@ -129,7 +129,7 @@ Réponds en français, en Markdown, de façon factuelle et concise : 500 mots au
 
 // Agents déjà connus : leur statut est fixé ici, pour que l'IA ne l'invente pas.
 const AGENTS_CONNUS = [
-  { nom: "Agent facturation", statut: "Implémenté", role: "rapprochement vendu / réalisé / facturé, écarts de TJM, CRA manquants et brouillons de relance, mises à jour du référentiel validées par la chargée de facturation (onglet 2 de cette page)" },
+  { nom: "Agent facturation", statut: "Implémenté", role: "rapprochement vendu / réalisé / facturé, écarts de TJM, CRA manquants et brouillons de relance, mises à jour du référentiel validées par la chargée de facturation (page principale de cet outil)" },
   { nom: "Agent de veille des mails facturation", statut: "Spécifié", role: "surveille la boîte du service facturation et signale les mails qui demandent une action (spécification rédigée, pas encore construit)" },
 ];
 
@@ -184,7 +184,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.10 · 15/11/2026";
+const VERSION = "v0.11 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -1074,15 +1074,37 @@ $("btnCRA").addEventListener("click", () => {
 
 $("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = ""; });
 
-// ---------- 9. Onglets et diagnostic des irritants ----------
+// ---------- 9. Accès responsable et diagnostic des irritants ----------
+// Connexion SIMULÉE pour la démo : la page est publique, n'importe qui peut lire ce code.
+// Ce n'est donc pas une protection ; en production, ce serait l'authentification de l'entreprise.
+const ADMIN_DEMO = { id: "admin", mdp: "admin" };
+const CLE_ADMIN = "agentFactu.admin";
+const adminConnecte = () => { try { return sessionStorage.getItem(CLE_ADMIN) === "1"; } catch (e) { return false; } };
+
 function montrerOnglet(nom) {
   const diag = nom === "diag";
   $("vueDiag").hidden = !diag; $("vueAgent").hidden = diag;
-  $("ongletDiag").classList.toggle("actif", diag); $("ongletAgent").classList.toggle("actif", !diag);
-  $("ongletDiag").setAttribute("aria-selected", String(diag)); $("ongletAgent").setAttribute("aria-selected", String(!diag));
+  $("btnAdmin").textContent = diag ? "← Retour à l'assistant" : "📊 Diagnostic des irritants";
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
-$("ongletDiag").addEventListener("click", () => montrerOnglet("diag"));
-$("ongletAgent").addEventListener("click", () => montrerOnglet("agent"));
+$("btnAdmin").addEventListener("click", () => {
+  if (!$("vueDiag").hidden) return montrerOnglet("agent");
+  if (adminConnecte()) return montrerOnglet("diag");
+  $("adminId").value = ""; $("adminMdp").value = ""; $("adminErreur").hidden = true;
+  $("dlgAdmin").showModal();
+  $("adminId").focus();
+});
+$("formAdmin").addEventListener("submit", (e) => {
+  if ($("adminId").value.trim() === ADMIN_DEMO.id && $("adminMdp").value === ADMIN_DEMO.mdp) {
+    try { sessionStorage.setItem(CLE_ADMIN, "1"); } catch (err) { /* sans stockage : il faudra se reconnecter */ }
+    $("adminMdp").value = "";
+    montrerOnglet("diag"); // le formulaire (method="dialog") ferme la fenêtre
+  } else {
+    e.preventDefault();
+    $("adminErreur").hidden = false; $("adminMdp").value = ""; $("adminMdp").focus();
+  }
+});
+$("adminAnnuler").addEventListener("click", () => $("dlgAdmin").close());
 
 $("btnDiag").addEventListener("click", async () => {
   if (!etat.classeur) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
