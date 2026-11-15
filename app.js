@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.32 · 15/11/2026";
+const VERSION = "v0.33 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -1269,6 +1269,9 @@ function basculer(occupe) {
     $(id).title = sansDonnees ? "Connectez-vous d'abord à vos données" : "";
   });
   $("btnReset").disabled = occupe;
+  // Le diagnostic n'est accessible qu'une fois les données chargées.
+  $("btnAdmin").disabled = sansDonnees;
+  $("btnAdmin").title = sansDonnees ? "Connectez-vous d'abord à vos données" : "Accès responsable du service";
   document.querySelectorAll(".aideDonnees").forEach((p) => (p.hidden = !sansDonnees));
 }
 // À appeler quand les données sont chargées ou effacées.
