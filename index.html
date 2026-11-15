@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agent facturation</title>
+  <title>Assistant facturation</title>
   <style>
     :root {
       --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6675;
@@ -51,16 +51,28 @@
     .msg.assistant { background: var(--panel); }
     .msg .who { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
     .quick button { margin-right: 6px; }
+    details.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+    details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+    details[open] > summary { margin-bottom: 8px; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 4px 0 0; }
+    .totaux { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .totaux div { flex: 1 1 200px; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+    .totaux b { display: block; font-size: 1.15rem; }
+    .totaux span { color: var(--muted); font-size: .85rem; }
+    .brouillon { border: 1px dashed var(--border); border-radius: 6px; padding: 8px 10px; margin: 8px 0; background: var(--bg); }
+    .brouillon pre { white-space: pre-wrap; margin: 0 0 6px; font: inherit; }
+    a.bouton { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; }
+    .modifs td button { margin-top: 0; padding: 4px 10px; }
   </style>
 </head>
 <body>
 <main>
-  <h1>Agent de rapprochement vendu / réalisé / facturé</h1>
-  <p class="sub">Prototype v1 · données fictives · l'agent propose, la chargée de facturation décide. Rien n'est envoyé par cette page, à part votre question au modèle d'IA.</p>
+  <h1>Assistant du service facturation</h1>
+  <p class="sub">Rapprochement vendu / réalisé / facturé · prototype, données fictives · l'assistant propose, la chargée de facturation décide.</p>
 
-  <!-- 1. Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier) -->
-  <section>
-    <h2>1. Le modèle d'IA et votre clé</h2>
+  <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Repliés quand une clé est enregistrée. -->
+  <details class="panel" id="reglages">
+    <summary>⚙ Réglages (modèle d'IA et clé)</summary>
     <div class="row">
       <div>
         <label for="provider">Fournisseur</label>
@@ -82,36 +94,33 @@
     <button id="saveKey">Enregistrer la clé</button>
     <button id="forgetKey" class="secondary">Oublier la clé</button>
     <div class="status" id="keyStatus"></div>
-  </section>
+  </details>
 
-  <!-- 2. Le fichier Excel est lu dans le navigateur, il n'est envoyé nulle part ailleurs qu'au modèle -->
+  <!-- Les données sont lues dans le navigateur ; elles ne partent nulle part ailleurs qu'au modèle d'IA -->
   <section>
-    <h2>2. Le fichier de données</h2>
-    <button id="btnGoogle" class="secondary">Se connecter avec Google (lecture seule) et charger l'Excel du Drive et les mails</button>
+    <h2>Connexion à vos données</h2>
+    <button id="btnGoogle">Se connecter avec Google (Gmail et Google Drive)</button>
+    <p class="hint">Gmail en lecture seule : l'assistant ne peut ni envoyer, ni supprimer, ni modifier un mail. Le référentiel n'est modifié qu'après votre clic « Valider ».</p>
     <div class="status" id="googleStatus"></div>
-    <p class="notice">Ou chargez les fichiers depuis votre ordinateur :</p>
-    <label for="file">Fichier Excel (Donnees_fictives_facturation.xlsx)</label>
-    <input type="file" id="file" accept=".xlsx">
     <div class="status" id="fileStatus">Aucun fichier chargé.</div>
-    <label for="mails">Mails (facultatif) : fichiers .eml ou archives .zip qui en contiennent</label>
-    <input type="file" id="mails" accept=".eml,.zip" multiple>
     <div class="status" id="mailsStatus"></div>
     <p class="notice" id="mailsNotice">Mails : aucun chargé. L'agent le signalera en tête de réponse et travaillera à partir du fichier Excel seul.</p>
+    <details id="local">
+      <summary>Charger depuis l'ordinateur (solution de secours)</summary>
+      <label for="file">Fichier Excel (Donnees_fictives_facturation.xlsx)</label>
+      <input type="file" id="file" accept=".xlsx">
+      <label for="mails">Mails (facultatif) : fichiers .eml ou archives .zip qui en contiennent</label>
+      <input type="file" id="mails" accept=".eml,.zip" multiple>
+    </details>
   </section>
 
-  <!-- 3. Contrôles calculés par le programme, sans IA : ce sont les chiffres de référence -->
-  <section id="factsSection" hidden>
-    <h2>3. Anomalies relevées dans l'onglet Rapprochement (calcul du programme, sans IA)</h2>
-    <div class="scroll" id="facts"></div>
-  </section>
-
-  <!-- 4. La conversation -->
+  <!-- La conversation -->
   <section>
-    <h2>4. La conversation</h2>
+    <h2>La conversation</h2>
     <div class="quick">
       <button id="btnPoint">Le point du jour</button>
-      <button id="btnCRA" class="secondary">CRA manquants</button>
-      <button id="btnRegles" class="secondary">Changements de règles repérés</button>
+      <button id="btnCRA" class="secondary">Relancer les CRA manquants</button>
+      <button id="btnRegles" class="secondary">Mettre à jour le référentiel</button>
       <button id="btnReset" class="secondary">Nouvelle conversation</button>
     </div>
     <div id="chat" style="margin-top:12px"></div>
@@ -120,6 +129,14 @@
     <button id="send">Envoyer</button>
     <div class="status" id="sendStatus"></div>
   </section>
+
+  <!-- Contrôles calculés par le programme, sans IA : les chiffres de référence que l'agent reprend -->
+  <details class="panel" id="factsSection" hidden>
+    <summary>Vérifier les chiffres (calculés par le programme, sans IA)</summary>
+    <p class="hint">D'après le référentiel seul, avant lecture des mails. L'agent reprend ces montants sans les recalculer et explique ce que les mails changent.</p>
+    <div class="totaux" id="factsResume"></div>
+    <div class="scroll" id="facts"></div>
+  </details>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
