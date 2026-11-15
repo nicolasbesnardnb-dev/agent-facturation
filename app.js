@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.25 · 15/11/2026";
+const VERSION = "v0.27 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -279,7 +279,15 @@ function afficherEtatCle() {
     ? "Une clé est enregistrée dans ce navigateur pour ce fournisseur."
     : "Aucune clé enregistrée pour ce fournisseur.";
   if (!cle) $("reglages").open = true; // sans clé, on ouvre les réglages
+  majBoutonCle();
 }
+// « Enregistrer la clé » n'est bleu (et cliquable) que si le champ contient au moins un caractère.
+function majBoutonCle() {
+  const vide = !$("apiKey").value.trim();
+  $("saveKey").classList.toggle("secondary", vide);
+  $("saveKey").disabled = vide;
+}
+$("apiKey").addEventListener("input", majBoutonCle);
 
 $("provider").addEventListener("change", () => {
   memoire.ecrire("agentFactu.fournisseur", $("provider").value);
@@ -328,7 +336,7 @@ $("forgetKey").addEventListener("click", () => {
 });
 
 // Bouton « ⚙ Réglages » en haut à droite : ouvre ou ferme le panneau.
-// Ouverts, ils s'affichent en plein écran comme une page à part ; « ← Retour » ou la touche Échap les ferment.
+// Ouverts, ils s'affichent en plein écran comme une page à part ; « OK » ou la touche Échap les ferment.
 $("btnReglages").addEventListener("click", () => { $("reglages").open = true; });
 $("fermerReglages").addEventListener("click", () => { $("reglages").open = false; });
 $("reglages").addEventListener("toggle", () => {
