@@ -9,12 +9,14 @@
       --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6675;
       --border: #d9dde4; --accent: #1f5fbf; --accent-text: #ffffff;
       --user: #e8f0fc; --warn-bg: #fff4e0; --warn: #8a5300; --err-bg: #fde8e8; --err: #a12222;
+      --ok-bg: #e3f4ea; --ok: #14713c;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --bg: #14171c; --panel: #1d2128; --text: #e6e9ee; --muted: #9aa3b2;
         --border: #343a45; --accent: #5b93e6; --accent-text: #0d1117;
         --user: #22324a; --warn-bg: #3a2c12; --warn: #f0c070; --err-bg: #3d1b1b; --err: #f29b9b;
+        --ok-bg: #16331f; --ok: #8fd6a8;
       }
     }
     * { box-sizing: border-box; }
@@ -24,6 +26,11 @@
     h1 { font-size: 1.4rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
     h1 svg { flex: none; color: var(--accent); }
     .envoi { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .connexion { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: .88rem; font-weight: 600; margin-top: 8px; }
+    .badge.deconnecte { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .badge.connecte { background: var(--ok-bg); color: var(--ok); }
+    .badge.expire { background: var(--warn-bg); color: var(--warn); }
     button.discret { background: transparent; border-color: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; padding: 4px 6px; }
     .sub { color: var(--muted); margin: 0 0 16px; }
     section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
@@ -111,7 +118,10 @@
   <!-- Les données sont lues dans le navigateur ; elles ne partent nulle part ailleurs qu'au modèle d'IA -->
   <section>
     <h2>Connexion à vos données</h2>
-    <button id="btnGoogle">Se connecter avec Google (Gmail et Google Drive)</button>
+    <div class="connexion">
+      <button id="btnGoogle">Se connecter avec Google (Gmail et Google Drive)</button>
+      <span id="etatGoogle" class="badge deconnecte" role="status"></span>
+    </div>
     <p class="hint">Gmail en lecture seule : l'assistant ne peut ni envoyer, ni supprimer, ni modifier un mail. Le référentiel n'est modifié qu'après votre clic « Valider ».</p>
     <div class="status" id="googleStatus"></div>
     <div class="status" id="fileStatus">Aucun fichier chargé.</div>

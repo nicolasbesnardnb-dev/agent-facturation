@@ -487,6 +487,25 @@ const FILTRE_GMAIL = "-in:drafts -from:google.com";
 // Gmail et Drive en lecture seule ; Sheets en écriture, utilisé uniquement après un clic « Valider ».
 const PORTEES_GOOGLE = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets";
 const SHEET = "application/vnd.google-apps.spreadsheet";
+// Nom et prénom du compte, pour l'indicateur de connexion.
+const PORTEE_PROFIL = "https://www.googleapis.com/auth/userinfo.profile";
+
+// Indicateur de connexion : nuage barré, coché ou avec un point d'exclamation.
+const NUAGE = '<path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.5 3.5 0 0 0 7 18z"/>';
+const ICONES_ETAT = {
+  deconnecte: NUAGE + '<path d="M3 3l18 18"/>',
+  connecte: NUAGE + '<path d="M9.5 13.5l2 2 3.5-4"/>',
+  expire: NUAGE + '<path d="M12 10.5v3M12 15.5v.01"/>',
+};
+let minuteurExpiration = null;
+function afficherEtatGoogle(etatConnexion, texte) {
+  const badge = $("etatGoogle");
+  badge.className = "badge " + etatConnexion;
+  const svg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES_ETAT[etatConnexion]}</svg>`;
+  badge.innerHTML = svg; // icône fixe, écrite dans ce fichier
+  badge.append(document.createTextNode(texte)); // le nom du compte est inséré comme texte, jamais comme HTML
+}
+afficherEtatGoogle("deconnecte", "Déconnecté");
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
 
 $("btnGoogle").addEventListener("click", () => {
@@ -495,10 +514,13 @@ $("btnGoogle").addEventListener("click", () => {
   if (!window.google || !google.accounts) { $("googleStatus").textContent = "Le module de connexion Google n'est pas encore chargé. Réessayez dans quelques secondes."; return; }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
-    scope: PORTEES_GOOGLE,
+    scope: PORTEES_GOOGLE + " " + PORTEE_PROFIL,
     callback: async (rep) => {
       if (rep.error) { $("googleStatus").textContent = "Connexion refusée ou annulée : " + rep.error; return; }
       jetonGoogle = rep.access_token;
+      // La connexion Google expire (environ 1 heure) : l'indicateur passe alors à « Connexion expirée ».
+      clearTimeout(minuteurExpiration);
+      minuteurExpiration = setTimeout(() => afficherEtatGoogle("expire", "Connexion expirée : reconnectez-vous"), (Number(rep.expires_in) || 3600) * 1000);
       try { await chargerDepuisGoogle(); } catch (e) { $("googleStatus").textContent = "Erreur Google : " + e.message; }
     },
     error_callback: (e) => { $("googleStatus").textContent = "Fenêtre de connexion fermée ou bloquée (" + (e.type || "erreur") + ")."; },
@@ -515,7 +537,7 @@ async function google_req(methode, url, corps, format = "json") {
   const r = await fetch(url, options);
   if (!r.ok) {
     let detail = ""; try { detail = (await r.json()).error.message; } catch (e) {}
-    if (r.status === 401) detail = "connexion Google expirée (environ 1 heure) : cliquez à nouveau sur « Se connecter avec Google ».";
+    if (r.status === 401) { detail = "connexion Google expirée (environ 1 heure) : cliquez à nouveau sur « Se connecter avec Google »."; afficherEtatGoogle("expire", "Connexion expirée : reconnectez-vous"); }
     throw new Error(`${r.status} ${detail}`);
   }
   return format === "json" ? r.json() : r.arrayBuffer();
@@ -538,6 +560,9 @@ async function chargerReferentielDrive() {
 async function chargerDepuisGoogle() {
   const profil = await google_get("https://gmail.googleapis.com/gmail/v1/users/me/profile");
   etat.compteGoogle = profil.emailAddress;
+  let nom = "";
+  try { nom = (await google_get("https://www.googleapis.com/oauth2/v3/userinfo")).name || ""; } catch (e) { /* le nom est facultatif */ }
+  afficherEtatGoogle("connecte", "Connecté · " + (nom ? `${nom} (${profil.emailAddress})` : profil.emailAddress));
   $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Recherche du référentiel sur Drive…`;
   await chargerReferentielDrive();
 
