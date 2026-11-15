@@ -982,7 +982,7 @@ function afficherTableauCRA(f) {
   }
   $("chat").appendChild(bloc);
 }
-$("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").replaceChildren(); $("sendStatus").textContent = ""; });
+$("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = ""; });
 
 chargerReglages();
 
