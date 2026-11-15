@@ -85,9 +85,8 @@
       padding: 16px max(16px, calc((100% - 1000px) / 2)); }
     #pageConnexion[hidden] { display: none; }
     #pageConnexion .ok, #reglages .ok { margin-top: 18px; text-align: right; }
-    .blocConnexion { display: flex; flex-direction: column; align-items: flex-end; }
-    .compteEntete { font-size: .78rem; color: var(--muted); margin-top: 3px; max-width: 260px; text-align: right; overflow-wrap: anywhere; }
     .compteEntete:empty { display: none; }
+    .modeleActif.compteEntete { margin-bottom: 0; }
     .titreReglages { display: flex; justify-content: space-between; align-items: center; }
     .titreReglages h2 { margin: 0; }
     .titreReglages button { margin-top: 0; }
@@ -132,14 +131,12 @@
   </h1>
   <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
   <div class="boutonsEntete">
-    <div class="blocConnexion">
-      <button id="btnConnexion" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
-      <span class="compteEntete" id="compteEntete"></span>
-    </div>
+    <button id="btnConnexion" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
     <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
     <button id="btnAdmin" class="secondary" title="Accès responsable du service">📊 Diagnostic des irritants</button>
   </div>
   </div>
+  <p class="modeleActif compteEntete" id="compteEntete"></p>
   <p class="modeleActif" id="modeleActif"></p>
   <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé<br>L'assistant propose, le chargé de facturation décide.</p>
 
@@ -266,7 +263,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.28 · 15/11/2026</span></p>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.30 · 15/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

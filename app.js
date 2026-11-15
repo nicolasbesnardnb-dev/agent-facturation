@@ -205,7 +205,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.28 · 15/11/2026";
+const VERSION = "v0.30 · 15/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
@@ -689,8 +689,8 @@ function majBoutonConnexion(etatConnexion) {
   $("btnConnexion").classList.toggle("secondary", connecte || !!etat.classeur);
   $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées et la conversation" : "Connexion à Gmail et Google Drive";
   let texte = "";
-  if (etatConnexion === "connecte") texte = nomCompteGoogle || etat.compteGoogle;
-  else if (etatConnexion === "expire") texte = (nomCompteGoogle || etat.compteGoogle) + " · connexion expirée";
+  if (etatConnexion === "connecte") texte = "Compte connecté : " + etat.compteGoogle;
+  else if (etatConnexion === "expire") texte = "Compte connecté : " + etat.compteGoogle + " (connexion expirée)";
   else if (etat.classeur) texte = "Fichiers chargés depuis l'ordinateur";
   $("compteEntete").textContent = texte;
 }
@@ -711,6 +711,7 @@ $("btnDeconnexion").addEventListener("click", () => {
   $("mailsStatus").textContent = "";
   afficherNoticeMails();
   afficherEtatGoogle("deconnecte", "Déconnecté");
+  accesAdmin = false; montrerOnglet("agent"); // l'accès responsable est oublié aussi
 });
 afficherEtatGoogle("deconnecte", "Déconnecté");
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
@@ -1287,8 +1288,9 @@ $("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").
 // Connexion SIMULÉE pour la démo : la page est publique, n'importe qui peut lire ce code.
 // Ce n'est donc pas une protection ; en production, ce serait l'authentification de l'entreprise.
 const ADMIN_DEMO = { id: "admin", mdp: "admin" };
-const CLE_ADMIN = "agentFactu.admin";
-const adminConnecte = () => { try { return sessionStorage.getItem(CLE_ADMIN) === "1"; } catch (e) { return false; } };
+// L'accès est gardé en mémoire seulement : il est oublié au rechargement de la page et à la déconnexion.
+var accesAdmin = false;
+const adminConnecte = () => accesAdmin;
 
 function montrerOnglet(nom) {
   const diag = nom === "diag";
@@ -1305,7 +1307,7 @@ $("btnAdmin").addEventListener("click", () => {
 });
 $("formAdmin").addEventListener("submit", (e) => {
   if ($("adminId").value.trim() === ADMIN_DEMO.id && $("adminMdp").value === ADMIN_DEMO.mdp) {
-    try { sessionStorage.setItem(CLE_ADMIN, "1"); } catch (err) { /* sans stockage : il faudra se reconnecter */ }
+    accesAdmin = true;
     $("adminMdp").value = "";
     montrerOnglet("diag"); // le formulaire (method="dialog") ferme la fenêtre
   } else {
