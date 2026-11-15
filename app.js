@@ -200,17 +200,20 @@ $("file").addEventListener("change", async (ev) => {
   const fichier = ev.target.files[0];
   if (!fichier) return;
   try {
-    const octets = await fichier.arrayBuffer();
-    const classeur = XLSX.read(octets, { type: "array", cellDates: true });
-    etat.donneesTexte = classeurEnTexte(classeur);
-    etat.donneesLegeres = donneesAllegees(classeur);
-    etat.faits = calculerFaits(classeur);
-    afficherFaits(etat.faits);
-    $("fileStatus").textContent = `Fichier chargé : ${fichier.name} (${classeur.SheetNames.length} onglets). Il reste dans ce navigateur ; il sera envoyé au modèle d'IA avec chaque question.`;
+    chargerClasseur(await fichier.arrayBuffer(), fichier.name);
   } catch (e) {
     $("fileStatus").textContent = "Impossible de lire ce fichier : " + e.message;
   }
 });
+
+function chargerClasseur(octets, nom) {
+  const classeur = XLSX.read(octets, { type: "array", cellDates: true });
+  etat.donneesTexte = classeurEnTexte(classeur);
+  etat.donneesLegeres = donneesAllegees(classeur);
+  etat.faits = calculerFaits(classeur);
+  afficherFaits(etat.faits);
+  $("fileStatus").textContent = `Fichier chargé : ${nom} (${classeur.SheetNames.length} onglets). Il reste dans ce navigateur ; il sera envoyé au modèle d'IA avec chaque question.`;
+}
 
 // Mode allégé : les contrats + seulement les lignes du journal des contrats en anomalie.
 function donneesAllegees(classeur) {
@@ -417,6 +420,10 @@ $("mails").addEventListener("change", async (ev) => {
       }
     } catch (e) { erreurs.push(f.name); }
   }
+  enregistrerMails(lus, erreurs);
+});
+
+function enregistrerMails(lus, erreurs) {
   // Pas de doublon si le même mail est chargé deux fois.
   const vus = new Set();
   etat.mails = lus.filter((m) => { const cle = m.id || (m.date + m.objet + m.de); if (vus.has(cle)) return false; vus.add(cle); return true; })
@@ -427,7 +434,76 @@ $("mails").addEventListener("change", async (ev) => {
     ? `${etat.mails.length} mails chargés (${envoyes} envoyés par le service, ${etat.mails.length - envoyes} reçus), du ${new Date(Math.min(...dates)).toLocaleDateString("fr-FR")} au ${new Date(Math.max(...dates)).toLocaleDateString("fr-FR")}.` + (erreurs.length ? ` Illisibles : ${erreurs.join(", ")}.` : "")
     : "Aucun mail lisible dans ces fichiers." + (erreurs.length ? ` Illisibles : ${erreurs.join(", ")}.` : "");
   afficherNoticeMails();
+}
+
+// ---------- 6 ter. Connexion Google (lecture seule) : Excel sur Drive + mails Gmail ----------
+// L'identifiant OAuth n'est pas un secret : il dit seulement à Google quelle application demande l'accès.
+const GOOGLE_CLIENT_ID = "854804037546-n9vmts3647o6sp128pkvpvmfmuu1o6oq.apps.googleusercontent.com";
+const NOM_EXCEL_DRIVE = "Donnees_fictives_facturation";
+const PORTEES_GOOGLE = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly";
+let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
+
+$("btnGoogle").addEventListener("click", () => {
+  if (location.protocol === "file:") { $("googleStatus").textContent = "La connexion Google ne marche que sur la page en ligne (GitHub Pages), pas sur un fichier ouvert depuis l'ordinateur."; return; }
+  if (!GOOGLE_CLIENT_ID) { $("googleStatus").textContent = "Identifiant Google pas encore configuré dans app.js."; return; }
+  if (!window.google || !google.accounts) { $("googleStatus").textContent = "Le module de connexion Google n'est pas encore chargé. Réessayez dans quelques secondes."; return; }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: PORTEES_GOOGLE,
+    callback: async (rep) => {
+      if (rep.error) { $("googleStatus").textContent = "Connexion refusée ou annulée : " + rep.error; return; }
+      jetonGoogle = rep.access_token;
+      try { await chargerDepuisGoogle(); } catch (e) { $("googleStatus").textContent = "Erreur Google : " + e.message; }
+    },
+    error_callback: (e) => { $("googleStatus").textContent = "Fenêtre de connexion fermée ou bloquée (" + (e.type || "erreur") + ")."; },
+  });
+  client.requestAccessToken();
 });
+
+async function google_get(url, format = "json") {
+  const r = await fetch(url, { headers: { authorization: "Bearer " + jetonGoogle } });
+  if (!r.ok) {
+    let detail = ""; try { detail = (await r.json()).error.message; } catch (e) {}
+    throw new Error(`${r.status} ${detail}`);
+  }
+  return format === "json" ? r.json() : r.arrayBuffer();
+}
+
+async function chargerDepuisGoogle() {
+  const profil = await google_get("https://gmail.googleapis.com/gmail/v1/users/me/profile");
+  $("googleStatus").textContent = `Connecté à ${profil.emailAddress} (lecture seule). Recherche de l'Excel sur Drive…`;
+
+  // Excel : le plus récent qui porte ce nom, hors corbeille. S'il a été converti en Google Sheets, on l'exporte en .xlsx.
+  const q = encodeURIComponent(`name contains '${NOM_EXCEL_DRIVE}' and trashed = false`);
+  const liste = await google_get(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime desc&fields=files(id,name,mimeType,modifiedTime)`);
+  const f = (liste.files || [])[0];
+  if (!f) throw new Error(`aucun fichier « ${NOM_EXCEL_DRIVE} » trouvé sur le Drive de ${profil.emailAddress}.`);
+  const octets = f.mimeType === "application/vnd.google-apps.spreadsheet"
+    ? await google_get(`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, "binaire")
+    : await google_get(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, "binaire");
+  chargerClasseur(octets, f.name + " (Google Drive)");
+
+  // Mails : boîte de réception et envoyés, sans corbeille, spam ni brouillons.
+  $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Excel chargé. Lecture des mails…`;
+  const ids = []; let page = "";
+  do {
+    const r = await google_get(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent("-in:drafts")}${page ? "&pageToken=" + page : ""}`);
+    (r.messages || []).forEach((m) => ids.push(m.id));
+    page = r.nextPageToken;
+  } while (page && ids.length < 300);
+  const lus = []; const erreurs = [];
+  for (let i = 0; i < ids.length; i += 5) { // 5 à la fois, pour ne pas surcharger
+    await Promise.all(ids.slice(i, i + 5).map(async (id) => {
+      try {
+        const m = await google_get(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=raw`);
+        const brut = atob(m.raw.replace(/-/g, "+").replace(/_/g, "/"));
+        lus.push(lireEml(versOctets(brut), "gmail:" + id));
+      } catch (e) { erreurs.push(id); }
+    }));
+  }
+  enregistrerMails(lus, erreurs);
+  $("googleStatus").textContent = `Connecté à ${profil.emailAddress} (lecture seule). Excel et mails chargés depuis Google, voir ci-dessous.` + (ids.length >= 300 ? " Attention : seuls les 300 mails les plus récents ont été lus." : "");
+}
 
 function afficherNoticeMails() {
   const groq = $("provider").value === "groq";

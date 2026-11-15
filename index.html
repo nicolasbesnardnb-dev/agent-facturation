@@ -87,6 +87,9 @@
   <!-- 2. Le fichier Excel est lu dans le navigateur, il n'est envoyé nulle part ailleurs qu'au modèle -->
   <section>
     <h2>2. Le fichier de données</h2>
+    <button id="btnGoogle" class="secondary">Se connecter avec Google (lecture seule) et charger l'Excel du Drive et les mails</button>
+    <div class="status" id="googleStatus"></div>
+    <p class="notice">Ou chargez les fichiers depuis votre ordinateur :</p>
     <label for="file">Fichier Excel (Donnees_fictives_facturation.xlsx)</label>
     <input type="file" id="file" accept=".xlsx">
     <div class="status" id="fileStatus">Aucun fichier chargé.</div>
@@ -124,6 +127,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <script src="app.js"></script>
 </body>
 </html>
