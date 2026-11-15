@@ -440,6 +440,8 @@ function enregistrerMails(lus, erreurs) {
 // L'identifiant OAuth n'est pas un secret : il dit seulement à Google quelle application demande l'accès.
 const GOOGLE_CLIENT_ID = "854804037546-n9vmts3647o6sp128pkvpvmfmuu1o6oq.apps.googleusercontent.com";
 const NOM_EXCEL_DRIVE = "Donnees_fictives_facturation";
+// Mails ignorés : brouillons et mails envoyés par Google lui-même (alertes de sécurité, bienvenue…).
+const FILTRE_GMAIL = "-in:drafts -from:google.com";
 const PORTEES_GOOGLE = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly";
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
 
@@ -483,11 +485,11 @@ async function chargerDepuisGoogle() {
     : await google_get(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, "binaire");
   chargerClasseur(octets, f.name + " (Google Drive)");
 
-  // Mails : boîte de réception et envoyés, sans corbeille, spam ni brouillons.
+  // Mails : boîte de réception et envoyés, sans corbeille, spam, brouillons ni mails de Google.
   $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Excel chargé. Lecture des mails…`;
   const ids = []; let page = "";
   do {
-    const r = await google_get(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent("-in:drafts")}${page ? "&pageToken=" + page : ""}`);
+    const r = await google_get(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent(FILTRE_GMAIL)}${page ? "&pageToken=" + page : ""}`);
     (r.messages || []).forEach((m) => ids.push(m.id));
     page = r.nextPageToken;
   } while (page && ids.length < 300);
