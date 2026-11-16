@@ -48,6 +48,7 @@
     section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
       padding: 14px; margin-bottom: 14px; }
     section h2 { font-size: 1rem; margin: 0 0 10px; }
+    section h2.titreChoix { font-size: 1.3rem; text-align: center; margin: 4px 0 16px; }
     label { display: block; font-weight: 600; margin: 8px 0 4px; }
     input[type=text], input[type=password], select, textarea {
       width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;
@@ -168,7 +169,7 @@
   </div>
   <p class="modeleActif compteEntete" id="compteEntete"></p>
   <p class="modeleActif" id="modeleActif"></p>
-  <p class="sub">Diagnostic des irritants et agent de rapprochement vendu / réalisé / facturé<br>L'assistant propose, le chargé de facturation décide.</p>
+  <p class="sub">Agent de rapprochement vendu / réalisé / facturé<br>L'assistant propose, le chargé de facturation décide.</p>
   </header>
 
   <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Ouverts seulement par le bouton (ou si une question est posée sans clé). -->
@@ -283,7 +284,7 @@
   <div id="vueAgent">
   <!-- La conversation -->
   <section>
-    <h2>Que souhaitez-vous faire ?</h2>
+    <h2 class="titreChoix">Que souhaitez-vous faire ?</h2>
     <div id="chat" style="margin-top:12px"></div>
     <div class="quick" style="margin-top:12px">
       <button id="btnPoint"><span class="titreCarte">Faire le point du jour</span><span class="sousCarte">Écarts à traiter, causes et relances prêtes</span></button>
@@ -311,7 +312,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.46 · 16/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.48 · 16/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
