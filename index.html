@@ -62,7 +62,12 @@
     button:disabled { opacity: .5; cursor: not-allowed; }
     .status { color: var(--muted); font-size: .9rem; margin-top: 6px; }
     .modeleActif { color: var(--muted); font-size: .8rem; margin: -2px 0 4px 44px; }
-    .conso { color: var(--muted); font-size: .8rem; margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 6px; }
+    .titreConso { margin: 24px 0 4px; font-size: 1rem; }
+    .tempsPasse { margin: 14px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+    .tempsPasse h3 { margin: 0 0 8px; font-size: 1rem; }
+    .tempsPasse input[type=number] { width: 4.5em; padding: 2px 4px; margin: 0; font: inherit; }
+    .tempsPasse tfoot th { font-weight: 700; }
+    .tempsPasse .taux { display: inline; font-weight: 400; margin-left: 6px; white-space: nowrap; }
     .notice:empty { display: none; }
     /* Panneau « Vérifier les chiffres » masqué à la demande : les chiffres restent calculés et envoyés à l'IA */
     #factsSection { display: none !important; }
@@ -208,6 +213,10 @@
     <button id="forgetKey" class="secondary">Oublier la clé</button>
     <button id="testKey" class="secondary" title="Vérifie la clé auprès du fournisseur, sans poser de question à l'IA (gratuit)">Tester la clé</button>
     <div class="status" id="keyStatus"></div>
+    <h3 class="titreConso">Consommation de l'IA (depuis l'ouverture de la page)</h3>
+    <p class="hint">Estimation calculée par la page à partir des tokens de chaque appel : ce n'est pas la facture du fournisseur. La liste repart de zéro quand la page est rechargée.</p>
+    <div class="scroll"><table id="consoListe" hidden><thead><tr><th>Heure</th><th>Usage</th><th>Modèle</th><th>Tokens envoyés</th><th>Tokens de réponse et de réflexion</th><th>Coût estimé</th></tr></thead><tbody></tbody></table></div>
+    <div class="status" id="consoTotal">Aucun appel à l'IA depuis l'ouverture de la page.</div>
     <div class="ok"><button id="fermerReglages">OK</button></div>
   </details>
 
@@ -276,6 +285,13 @@
       <button id="btnDiag">Analyser les irritants</button>
       <button id="btnHistorique" class="secondary" title="Rouvrir un diagnostic enregistré, sans rappeler l'IA">🕘 Diagnostics précédents</button>
       <p class="hint aideDonnees">Connectez-vous à vos données pour lancer l'analyse.</p>
+      <div id="tempsPasse" class="tempsPasse" hidden>
+        <h3>⏱ Temps passé sur les tâches répétitives</h3>
+        <div class="scroll"><table id="tempsListe"><thead><tr><th>Tâche</th><th>Nombre</th><th>Durée par tâche (hypothèse)</th><th>Temps total</th><th>Coût estimé</th></tr></thead><tbody></tbody>
+          <tfoot><tr><th colspan="3">Total <label class="taux">· taux horaire chargé <input type="number" id="tauxHoraire" min="0" step="5" aria-label="Taux horaire chargé en euros"> € de l'heure</label></th><th colspan="2" id="tempsTotal"></th></tr></tfoot></table></div>
+        <p class="hint" id="tempsPeriode"></p>
+        <button id="tempsReset" class="secondary">Revenir aux hypothèses par défaut</button>
+      </div>
       <div class="status" id="diagStatus"></div>
       <div id="diagResultat" class="msg assistant" hidden></div>
     </section>
@@ -312,7 +328,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.48 · 16/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.49 · 16/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

@@ -145,7 +145,8 @@ Règles
 - Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
 - Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
-- Toute estimation (temps passé, montant) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
+- Temps passé et son coût en euros : reprends exactement les chiffres du bloc « TEMPS PASSÉ SUR LES TÂCHES RÉPÉTITIVES » (comptages faits par le programme, hypothèses de durée et de taux horaire saisies par l'utilisateur). N'invente aucune autre durée ni aucun autre taux, et ne recalcule pas ces montants. Mentionne une fois qu'il s'agit d'une estimation sur hypothèses.
+- Toute autre estimation est présentée comme une hypothèse explicite, terminée par « à confirmer ».
 - Agents déjà connus, avec un statut fixé que tu reprends exactement :
 ${AGENTS_CONNUS.map((a) => `  - « ${a.nom} » — statut « ${a.statut} » — ${a.role}`).join("\n")}
   Si un irritant est couvert par l'un d'eux, écris exactement son nom et son statut. Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
@@ -209,7 +210,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.48 · 16/11/2026";
+const VERSION = "v0.49 · 16/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -452,6 +453,7 @@ function systemeDiagnostic() {
   return [
     INSTRUCTIONS_DIAGNOSTIC,
     "## ONGLETS DU RÉFÉRENTIEL\n" + classeurEnTexte({ SheetNames: onglets, Sheets: etat.classeur.Sheets }),
+    texteTempsPasse(),
   ].join("\n\n");
 }
 
@@ -713,6 +715,7 @@ $("btnDeconnexion").addEventListener("click", () => {
   etat.classeur = null;
   majBoutons();
   $("diagResultat").replaceChildren(); $("diagResultat").hidden = true; $("diagStatus").textContent = "";
+  $("tempsPasse").hidden = true;
   $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
   $("fileStatus").textContent = "Aucun fichier chargé.";
   $("mailsStatus").textContent = "";
@@ -989,20 +992,33 @@ function noterConsoOpenAI(fournisseur, modele, u) {
   noterConso(fournisseur, modele, { envoyes: (u.prompt_tokens || 0) - cacheLu, cacheLu, cacheEcrit: 0, sortie: u.completion_tokens || 0 });
 }
 const nombre = (n) => Math.round(n).toLocaleString("fr-FR");
-// Ajoute sous la réponse une ligne discrète : tokens envoyés, relus du cache, réponse, coût estimé.
-function afficherConso(zone) {
-  if (!zone || !derniereConso) return;
+// Consommation de l'IA : rien n'est affiché sous les réponses (démo lisible pour la direction).
+// Chaque appel est noté dans la liste « Consommation de l'IA » des Réglages (cette session seulement).
+const journalConso = [];
+function afficherConso(usage) {
+  if (!derniereConso) return;
   const c = derniereConso;
-  const envoyesTotal = c.envoyes + c.cacheLu + c.cacheEcrit;
-  let txt = `Consommation (${c.modele}) : ${nombre(envoyesTotal)} tokens envoyés`
-    + (c.cacheLu ? `, dont ${nombre(c.cacheLu)} relus du cache` : ", cache non utilisé")
-    + ` · ${nombre(c.sortie)} tokens de réponse et de réflexion`;
-  txt += c.cout != null
-    ? ` · coût estimé ≈ ${c.cout.toFixed(3).replace(".", ",")} $ · total de la session ≈ ${totalSession.toFixed(2).replace(".", ",")} $`
-    : " · coût : voir les tarifs du fournisseur";
-  zone.appendChild(Object.assign(document.createElement("div"), { className: "conso", textContent: txt }));
+  journalConso.push({ heure: new Date(), usage, ...c });
   derniereConso = null;
+  majListeConso();
   return c; // pour l'historique (modèle, coût)
+}
+function majListeConso() {
+  const corps = $("consoListe").tBodies[0];
+  corps.replaceChildren();
+  journalConso.slice().reverse().forEach((c) => {
+    const tr = corps.insertRow();
+    [c.heure.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), c.usage, c.modele,
+      nombre(c.envoyes + c.cacheLu + c.cacheEcrit) + (c.cacheLu ? ` (dont ${nombre(c.cacheLu)} relus du cache)` : ""),
+      nombre(c.sortie),
+      c.cout != null ? "≈ " + c.cout.toFixed(3).replace(".", ",") + " $" : "voir les tarifs du fournisseur"]
+      .forEach((v) => { tr.insertCell().textContent = v; });
+  });
+  $("consoListe").hidden = !journalConso.length;
+  $("consoTotal").textContent = journalConso.length
+    ? `${journalConso.length} appel${journalConso.length > 1 ? "s" : ""} à l'IA · total estimé ≈ ${totalSession.toFixed(2).replace(".", ",")} $`
+      + (journalConso.some((c) => c.cout == null) ? " (hors appels sans tarif connu)" : "")
+    : "Aucun appel à l'IA depuis l'ouverture de la page.";
 }
 
 // Lit la réponse de Claude envoyée par morceaux (« server-sent events ») et transmet le texte reçu au fur et à mesure.
@@ -1309,7 +1325,7 @@ async function envoyer(question, options = {}) {
     etat.historique.push({ role: "assistant", content: texte });
     if (bulle) rendreReponse(bulle, texte, true); else afficherMessage("assistant", texte);
     const bulles = $("chat").querySelectorAll(".msg.assistant");
-    const conso = afficherConso(bulles[bulles.length - 1]);
+    const conso = afficherConso(/^Fais le point du jour/.test(question) ? "Point du jour" : /^Fais le point sur les CRA/.test(question) ? "CRA manquants" : /^Quels changements de règles/.test(question) ? "Mise à jour du référentiel" : "Question");
     if (options.historique) enregistrerAnalyse(options.historique, texte, conso, bulles[bulles.length - 1]);
     arreter("");
   } catch (e) {
@@ -1449,7 +1465,7 @@ function ajouterLienAgent(zone) {
   });
 }
 
-function ouvrirDiag() { montrerOnglet("diag"); afficherDernierDiag(); }
+function ouvrirDiag() { montrerOnglet("diag"); afficherTempsPasse(); afficherDernierDiag(); }
 $("btnAdmin").addEventListener("click", () => {
   if (!$("vueDiag").hidden) return montrerOnglet("agent");
   if (adminConnecte()) return ouvrirDiag();
@@ -1471,7 +1487,7 @@ $("btnDiag").addEventListener("click", async () => {
     zone.innerHTML = DOMPurify.sanitize(marked.parse(texte), { FORBID_TAGS: ["img"] });
     zone.hidden = false;
     ajouterLienAgent(zone);
-    const conso = afficherConso(zone);
+    const conso = afficherConso("Diagnostic des irritants");
     enregistrerAnalyse("diag", texte, conso, zone);
     arreter("");
   } catch (e) {
@@ -1483,6 +1499,119 @@ $("btnDiag").addEventListener("click", async () => {
   }
 });
 
+// ---------- 9 bis. Temps passé sur les tâches répétitives (calcul du programme, sans IA) ----------
+// Le programme compte les tâches du service facturation dans le Journal_activité et les valorise
+// avec des hypothèses modifiables dans la page (durée par tâche, taux horaire). L'IA reprend ces chiffres sans les recalculer.
+const TACHES_REPETITIVES = [
+  // unMail : une ligne par consultant pour un seul mail → même jour, même contrat, même texte hors code consultant = 1 mail
+  { cle: "relance", action: "Relance mail", nom: "Relances par mail (CRA, validation, bon de commande)", minutes: 10, unMail: true },
+  { cle: "mail", action: "Mail", nom: "Autres mails de suivi aux managers", minutes: 10, unMail: true },
+  { cle: "export", action: "Export Excel manuel", nom: "Exports Excel manuels", minutes: 30 },
+  { cle: "copilot", action: "Question Copilot", nom: "Recherches de contournement (questions à Copilot)", minutes: 10 },
+  { cle: "correction", action: "Correction facture", nom: "Factures annulées et réémises après rejet", minutes: 45 },
+];
+const TAUX_HORAIRE_DEFAUT = 50; // € de l'heure, coût chargé (hypothèse modifiable dans la page)
+const CLE_HYPOTHESES = "agentFactu.tempsPasse";
+
+function lireHypotheses() {
+  let h = {};
+  try { h = JSON.parse(memoire.lire(CLE_HYPOTHESES) || "{}"); } catch (e) { h = {}; }
+  const minutes = {};
+  TACHES_REPETITIVES.forEach((t) => { minutes[t.cle] = Number.isFinite(h.minutes && h.minutes[t.cle]) ? h.minutes[t.cle] : t.minutes; });
+  return { taux: Number.isFinite(h.taux) ? h.taux : TAUX_HORAIRE_DEFAUT, minutes };
+}
+function enDate(v) {
+  if (typeof v === "number") return new Date(Math.round((v - 25569) * 864e5)); // date Excel
+  const d = new Date(v); return isNaN(d) ? null : d;
+}
+function compterTaches(classeur) {
+  const feuille = classeur && classeur.Sheets["Journal_activité"];
+  if (!feuille) return null;
+  const lignes = XLSX.utils.sheet_to_json(feuille, { raw: true, defval: "" });
+  const comptes = {}; const vus = new Set(); const dates = [];
+  TACHES_REPETITIVES.forEach((t) => { comptes[t.cle] = 0; });
+  lignes.forEach((l) => {
+    const d = enDate(l["Date"]); if (d) dates.push(d.getTime());
+    if (!/facturation/i.test(String(l["Acteur"]))) return; // seulement le temps du service facturation
+    const t = TACHES_REPETITIVES.find((x) => x.action === String(l["Action"]).trim());
+    if (!t) return;
+    if (t.unMail) {
+      const cle = [String(l["Date"]), t.cle, l["Contrat"], String(l["Détail"]).replace(/\bC\d{3}\b/g, "").replace(/\s+/g, " ").trim()].join("|");
+      if (vus.has(cle)) return; vus.add(cle);
+    }
+    comptes[t.cle]++;
+  });
+  return { comptes, debut: dates.length ? new Date(Math.min(...dates)) : null, fin: dates.length ? new Date(Math.max(...dates)) : null };
+}
+const dureeTexte = (min) => { const h = Math.floor(min / 60), m = Math.round(min % 60); return h ? `${h} h${m ? " " + String(m).padStart(2, "0") : ""}` : `${m} min`; };
+const eurosTexte = (v) => Math.round(v).toLocaleString("fr-FR") + " €";
+
+function calculTempsPasse() {
+  const c = compterTaches(etat.classeur);
+  if (!c) return null;
+  const h = lireHypotheses();
+  const lignes = TACHES_REPETITIVES.map((t) => {
+    const minutes = c.comptes[t.cle] * h.minutes[t.cle];
+    return { ...t, nombre: c.comptes[t.cle], minutesUnitaires: h.minutes[t.cle], minutes, euros: minutes / 60 * h.taux };
+  });
+  const totalMin = lignes.reduce((a, l) => a + l.minutes, 0);
+  return { lignes, taux: h.taux, totalMin, totalEuros: totalMin / 60 * h.taux, debut: c.debut, fin: c.fin };
+}
+const periodeTexte = (r) => (r.debut && r.fin ? `du ${r.debut.toLocaleDateString("fr-FR")} au ${r.fin.toLocaleDateString("fr-FR")}` : "sur la période du journal");
+
+// Texte envoyé à l'IA avec le diagnostic.
+function texteTempsPasse() {
+  const r = calculTempsPasse();
+  if (!r) return "## TEMPS PASSÉ SUR LES TÂCHES RÉPÉTITIVES\nNon calculé (onglet Journal_activité absent).";
+  return [`## TEMPS PASSÉ SUR LES TÂCHES RÉPÉTITIVES (calculé par le programme, ${periodeTexte(r)})`,
+    `Taux horaire chargé (hypothèse saisie par l'utilisateur) : ${r.taux} € de l'heure.`,
+    "Tâche | Nombre (Journal_activité, service facturation) | Durée par tâche (hypothèse) | Temps total | Coût estimé",
+    ...r.lignes.map((l) => `${l.nom} | ${l.nombre} | ${l.minutesUnitaires} min | ${dureeTexte(l.minutes)} | ${eurosTexte(l.euros)}`),
+    `TOTAL | | | ${dureeTexte(r.totalMin)} | ${eurosTexte(r.totalEuros)}`,
+    "Règle de comptage : lignes du Journal_activité dont l'acteur est le service facturation ; pour les relances et les mails, une ligne par consultant pour un même envoi compte pour un seul mail."].join("\n");
+}
+
+// Bloc affiché dans la vue Diagnostic, avec les hypothèses modifiables.
+function afficherTempsPasse() {
+  const bloc = $("tempsPasse");
+  const r = calculTempsPasse();
+  bloc.hidden = !r;
+  if (!r) return;
+  const h = lireHypotheses();
+  const enregistrer = () => {
+    const minutes = {};
+    bloc.querySelectorAll("input[data-cle]").forEach((i) => { const v = parseFloat(i.value); minutes[i.dataset.cle] = Number.isFinite(v) && v >= 0 ? v : h.minutes[i.dataset.cle]; });
+    const t = parseFloat($("tauxHoraire").value);
+    memoire.ecrire(CLE_HYPOTHESES, JSON.stringify({ taux: Number.isFinite(t) && t >= 0 ? t : h.taux, minutes }));
+    majTotauxTemps();
+  };
+  $("tauxHoraire").value = h.taux;
+  $("tauxHoraire").oninput = enregistrer;
+  const corps = $("tempsListe").tBodies[0]; corps.replaceChildren();
+  r.lignes.forEach((l) => {
+    const tr = corps.insertRow(); tr.dataset.cle = l.cle;
+    tr.insertCell().textContent = l.nom;
+    tr.insertCell().textContent = l.nombre;
+    const champ = Object.assign(document.createElement("input"), { type: "number", min: "0", step: "5", value: l.minutesUnitaires, className: "champMinutes" });
+    champ.dataset.cle = l.cle; champ.setAttribute("aria-label", "Minutes par tâche : " + l.nom);
+    champ.oninput = enregistrer;
+    const cel = tr.insertCell(); cel.append(champ, document.createTextNode(" min"));
+    tr.insertCell().className = "duree"; tr.insertCell().className = "euros";
+  });
+  $("tempsReset").onclick = () => { memoire.effacer(CLE_HYPOTHESES); afficherTempsPasse(); };
+  majTotauxTemps();
+}
+function majTotauxTemps() {
+  const r = calculTempsPasse(); if (!r) return;
+  r.lignes.forEach((l) => {
+    const tr = $("tempsListe").querySelector(`tr[data-cle="${l.cle}"]`); if (!tr) return;
+    tr.querySelector(".duree").textContent = dureeTexte(l.minutes);
+    tr.querySelector(".euros").textContent = eurosTexte(l.euros);
+  });
+  $("tempsTotal").textContent = `${dureeTexte(r.totalMin)} · ${eurosTexte(r.totalEuros)}`;
+  $("tempsPeriode").textContent = `Tâches comptées par le programme dans le journal d'activité, ${periodeTexte(r)}. Estimation sur hypothèses : modifiez les durées et le taux horaire si besoin. L'analyse de l'IA reprend ces chiffres.`;
+}
+
 // ---------- 10. Historique des analyses (Firestore) ----------
 // Chaque point du jour et chaque diagnostic est enregistré (texte de la réponse, modèle, coût, date des données).
 // On peut ensuite le rouvrir sans rappeler l'IA. Les enregistrements ne sont ni modifiés ni supprimés depuis la page.
@@ -1490,7 +1619,6 @@ const TYPES_ANALYSE = { point: "Point du jour", diag: "Diagnostic des irritants"
 const COLLECTION = "analyses";
 const dateHeure = (d) => (d ? d.toLocaleDateString("fr-FR") + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "en cours d'enregistrement");
 const dateFrCourte = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : iso || "");
-const coutTexte = (c) => (typeof c === "number" ? "≈ " + c.toFixed(3).replace(".", ",") + " $" : "");
 
 function noteHistorique(zone, texte) {
   if (zone) zone.appendChild(Object.assign(document.createElement("div"), { className: "noteHist", textContent: texte }));
@@ -1525,7 +1653,7 @@ function rendreAnalyse(conteneur, a) {
   if (a.type === "diag") ajouterLienAgent(conteneur);
 }
 const enteteAnalyse = (a) => `${TYPES_ANALYSE[a.type] || a.type} enregistré le ${dateHeure(a.date && a.date.toDate ? a.date.toDate() : null)}`
-  + (a.dateDonnees ? ` · données au ${dateFrCourte(a.dateDonnees)}` : "") + (a.modele ? ` · ${a.modele}` : "") + (coutTexte(a.cout) ? ` · ${coutTexte(a.cout)}` : "");
+  + (a.dateDonnees ? ` · données au ${dateFrCourte(a.dateDonnees)}` : "") + (a.modele ? ` · ${a.modele}` : "");
 
 function fermerHistorique() { $("pageHistorique").hidden = true; document.body.classList.remove("reglagesOuverts"); }
 async function ouvrirHistorique() {
@@ -1539,7 +1667,7 @@ async function ouvrirHistorique() {
     const corps = $("histListe").tBodies[0]; corps.replaceChildren();
     analyses.forEach((a) => {
       const tr = corps.insertRow();
-      [dateHeure(a.date && a.date.toDate ? a.date.toDate() : null), TYPES_ANALYSE[a.type] || a.type, dateFrCourte(a.dateDonnees), a.modele || "", coutTexte(a.cout)]
+      [dateHeure(a.date && a.date.toDate ? a.date.toDate() : null), TYPES_ANALYSE[a.type] || a.type, dateFrCourte(a.dateDonnees), a.modele || ""]
         .forEach((v) => { tr.insertCell().textContent = v; });
       const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Ouvrir";
       b.addEventListener("click", () => {
