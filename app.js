@@ -145,8 +145,7 @@ Règles
 - Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
 - Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
-- Temps passé et son coût en euros : reprends exactement les chiffres du bloc « TEMPS PASSÉ SUR LES TÂCHES RÉPÉTITIVES » (comptages faits par le programme, hypothèses de durée et de taux horaire saisies par l'utilisateur). N'invente aucune autre durée ni aucun autre taux, et ne recalcule pas ces montants. Mentionne une fois qu'il s'agit d'une estimation sur hypothèses.
-- Toute autre estimation est présentée comme une hypothèse explicite, terminée par « à confirmer ».
+- Toute estimation (temps passé, montant) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
 - Agents déjà connus, avec un statut fixé que tu reprends exactement :
 ${AGENTS_CONNUS.map((a) => `  - « ${a.nom} » — statut « ${a.statut} » — ${a.role}`).join("\n")}
   Si un irritant est couvert par l'un d'eux, écris exactement son nom et son statut. Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
@@ -210,7 +209,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.49 · 16/11/2026";
+const VERSION = "v0.50 · 16/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -453,7 +452,6 @@ function systemeDiagnostic() {
   return [
     INSTRUCTIONS_DIAGNOSTIC,
     "## ONGLETS DU RÉFÉRENTIEL\n" + classeurEnTexte({ SheetNames: onglets, Sheets: etat.classeur.Sheets }),
-    texteTempsPasse(),
   ].join("\n\n");
 }
 
@@ -715,7 +713,6 @@ $("btnDeconnexion").addEventListener("click", () => {
   etat.classeur = null;
   majBoutons();
   $("diagResultat").replaceChildren(); $("diagResultat").hidden = true; $("diagStatus").textContent = "";
-  $("tempsPasse").hidden = true;
   $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
   $("fileStatus").textContent = "Aucun fichier chargé.";
   $("mailsStatus").textContent = "";
@@ -1465,7 +1462,7 @@ function ajouterLienAgent(zone) {
   });
 }
 
-function ouvrirDiag() { montrerOnglet("diag"); afficherTempsPasse(); afficherDernierDiag(); }
+function ouvrirDiag() { montrerOnglet("diag"); afficherDernierDiag(); }
 $("btnAdmin").addEventListener("click", () => {
   if (!$("vueDiag").hidden) return montrerOnglet("agent");
   if (adminConnecte()) return ouvrirDiag();
@@ -1498,119 +1495,6 @@ $("btnDiag").addEventListener("click", async () => {
     basculer(false);
   }
 });
-
-// ---------- 9 bis. Temps passé sur les tâches répétitives (calcul du programme, sans IA) ----------
-// Le programme compte les tâches du service facturation dans le Journal_activité et les valorise
-// avec des hypothèses modifiables dans la page (durée par tâche, taux horaire). L'IA reprend ces chiffres sans les recalculer.
-const TACHES_REPETITIVES = [
-  // unMail : une ligne par consultant pour un seul mail → même jour, même contrat, même texte hors code consultant = 1 mail
-  { cle: "relance", action: "Relance mail", nom: "Relances par mail (CRA, validation, bon de commande)", minutes: 10, unMail: true },
-  { cle: "mail", action: "Mail", nom: "Autres mails de suivi aux managers", minutes: 10, unMail: true },
-  { cle: "export", action: "Export Excel manuel", nom: "Exports Excel manuels", minutes: 30 },
-  { cle: "copilot", action: "Question Copilot", nom: "Recherches de contournement (questions à Copilot)", minutes: 10 },
-  { cle: "correction", action: "Correction facture", nom: "Factures annulées et réémises après rejet", minutes: 45 },
-];
-const TAUX_HORAIRE_DEFAUT = 50; // € de l'heure, coût chargé (hypothèse modifiable dans la page)
-const CLE_HYPOTHESES = "agentFactu.tempsPasse";
-
-function lireHypotheses() {
-  let h = {};
-  try { h = JSON.parse(memoire.lire(CLE_HYPOTHESES) || "{}"); } catch (e) { h = {}; }
-  const minutes = {};
-  TACHES_REPETITIVES.forEach((t) => { minutes[t.cle] = Number.isFinite(h.minutes && h.minutes[t.cle]) ? h.minutes[t.cle] : t.minutes; });
-  return { taux: Number.isFinite(h.taux) ? h.taux : TAUX_HORAIRE_DEFAUT, minutes };
-}
-function enDate(v) {
-  if (typeof v === "number") return new Date(Math.round((v - 25569) * 864e5)); // date Excel
-  const d = new Date(v); return isNaN(d) ? null : d;
-}
-function compterTaches(classeur) {
-  const feuille = classeur && classeur.Sheets["Journal_activité"];
-  if (!feuille) return null;
-  const lignes = XLSX.utils.sheet_to_json(feuille, { raw: true, defval: "" });
-  const comptes = {}; const vus = new Set(); const dates = [];
-  TACHES_REPETITIVES.forEach((t) => { comptes[t.cle] = 0; });
-  lignes.forEach((l) => {
-    const d = enDate(l["Date"]); if (d) dates.push(d.getTime());
-    if (!/facturation/i.test(String(l["Acteur"]))) return; // seulement le temps du service facturation
-    const t = TACHES_REPETITIVES.find((x) => x.action === String(l["Action"]).trim());
-    if (!t) return;
-    if (t.unMail) {
-      const cle = [String(l["Date"]), t.cle, l["Contrat"], String(l["Détail"]).replace(/\bC\d{3}\b/g, "").replace(/\s+/g, " ").trim()].join("|");
-      if (vus.has(cle)) return; vus.add(cle);
-    }
-    comptes[t.cle]++;
-  });
-  return { comptes, debut: dates.length ? new Date(Math.min(...dates)) : null, fin: dates.length ? new Date(Math.max(...dates)) : null };
-}
-const dureeTexte = (min) => { const h = Math.floor(min / 60), m = Math.round(min % 60); return h ? `${h} h${m ? " " + String(m).padStart(2, "0") : ""}` : `${m} min`; };
-const eurosTexte = (v) => Math.round(v).toLocaleString("fr-FR") + " €";
-
-function calculTempsPasse() {
-  const c = compterTaches(etat.classeur);
-  if (!c) return null;
-  const h = lireHypotheses();
-  const lignes = TACHES_REPETITIVES.map((t) => {
-    const minutes = c.comptes[t.cle] * h.minutes[t.cle];
-    return { ...t, nombre: c.comptes[t.cle], minutesUnitaires: h.minutes[t.cle], minutes, euros: minutes / 60 * h.taux };
-  });
-  const totalMin = lignes.reduce((a, l) => a + l.minutes, 0);
-  return { lignes, taux: h.taux, totalMin, totalEuros: totalMin / 60 * h.taux, debut: c.debut, fin: c.fin };
-}
-const periodeTexte = (r) => (r.debut && r.fin ? `du ${r.debut.toLocaleDateString("fr-FR")} au ${r.fin.toLocaleDateString("fr-FR")}` : "sur la période du journal");
-
-// Texte envoyé à l'IA avec le diagnostic.
-function texteTempsPasse() {
-  const r = calculTempsPasse();
-  if (!r) return "## TEMPS PASSÉ SUR LES TÂCHES RÉPÉTITIVES\nNon calculé (onglet Journal_activité absent).";
-  return [`## TEMPS PASSÉ SUR LES TÂCHES RÉPÉTITIVES (calculé par le programme, ${periodeTexte(r)})`,
-    `Taux horaire chargé (hypothèse saisie par l'utilisateur) : ${r.taux} € de l'heure.`,
-    "Tâche | Nombre (Journal_activité, service facturation) | Durée par tâche (hypothèse) | Temps total | Coût estimé",
-    ...r.lignes.map((l) => `${l.nom} | ${l.nombre} | ${l.minutesUnitaires} min | ${dureeTexte(l.minutes)} | ${eurosTexte(l.euros)}`),
-    `TOTAL | | | ${dureeTexte(r.totalMin)} | ${eurosTexte(r.totalEuros)}`,
-    "Règle de comptage : lignes du Journal_activité dont l'acteur est le service facturation ; pour les relances et les mails, une ligne par consultant pour un même envoi compte pour un seul mail."].join("\n");
-}
-
-// Bloc affiché dans la vue Diagnostic, avec les hypothèses modifiables.
-function afficherTempsPasse() {
-  const bloc = $("tempsPasse");
-  const r = calculTempsPasse();
-  bloc.hidden = !r;
-  if (!r) return;
-  const h = lireHypotheses();
-  const enregistrer = () => {
-    const minutes = {};
-    bloc.querySelectorAll("input[data-cle]").forEach((i) => { const v = parseFloat(i.value); minutes[i.dataset.cle] = Number.isFinite(v) && v >= 0 ? v : h.minutes[i.dataset.cle]; });
-    const t = parseFloat($("tauxHoraire").value);
-    memoire.ecrire(CLE_HYPOTHESES, JSON.stringify({ taux: Number.isFinite(t) && t >= 0 ? t : h.taux, minutes }));
-    majTotauxTemps();
-  };
-  $("tauxHoraire").value = h.taux;
-  $("tauxHoraire").oninput = enregistrer;
-  const corps = $("tempsListe").tBodies[0]; corps.replaceChildren();
-  r.lignes.forEach((l) => {
-    const tr = corps.insertRow(); tr.dataset.cle = l.cle;
-    tr.insertCell().textContent = l.nom;
-    tr.insertCell().textContent = l.nombre;
-    const champ = Object.assign(document.createElement("input"), { type: "number", min: "0", step: "5", value: l.minutesUnitaires, className: "champMinutes" });
-    champ.dataset.cle = l.cle; champ.setAttribute("aria-label", "Minutes par tâche : " + l.nom);
-    champ.oninput = enregistrer;
-    const cel = tr.insertCell(); cel.append(champ, document.createTextNode(" min"));
-    tr.insertCell().className = "duree"; tr.insertCell().className = "euros";
-  });
-  $("tempsReset").onclick = () => { memoire.effacer(CLE_HYPOTHESES); afficherTempsPasse(); };
-  majTotauxTemps();
-}
-function majTotauxTemps() {
-  const r = calculTempsPasse(); if (!r) return;
-  r.lignes.forEach((l) => {
-    const tr = $("tempsListe").querySelector(`tr[data-cle="${l.cle}"]`); if (!tr) return;
-    tr.querySelector(".duree").textContent = dureeTexte(l.minutes);
-    tr.querySelector(".euros").textContent = eurosTexte(l.euros);
-  });
-  $("tempsTotal").textContent = `${dureeTexte(r.totalMin)} · ${eurosTexte(r.totalEuros)}`;
-  $("tempsPeriode").textContent = `Tâches comptées par le programme dans le journal d'activité, ${periodeTexte(r)}. Estimation sur hypothèses : modifiez les durées et le taux horaire si besoin. L'analyse de l'IA reprend ces chiffres.`;
-}
 
 // ---------- 10. Historique des analyses (Firestore) ----------
 // Chaque point du jour et chaque diagnostic est enregistré (texte de la réponse, modèle, coût, date des données).
