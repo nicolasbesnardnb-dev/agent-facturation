@@ -209,7 +209,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.39 · 16/11/2026";
+const VERSION = "v0.40 · 16/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -351,6 +351,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if ($("reglages").open) $("reglages").open = false;
   else if (!$("pageConnexion").hidden) fermerConnexion();
+  else if (!$("pageHistorique").hidden) fermerHistorique();
 });
 
 // Page « Connexion à vos données » : plein écran, ouverte par le bouton « Connexion », refermée par « OK » ou Échap.
@@ -718,6 +719,8 @@ $("btnDeconnexion").addEventListener("click", () => {
   afficherNoticeMails();
   afficherEtatGoogle("deconnecte", "Déconnecté");
   accesAdmin = false; montrerOnglet("agent"); // l'accès responsable est oublié aussi
+  if (fb && fb.auth.currentUser) fb.auth.signOut().catch(() => {});
+  fermerHistorique();
 });
 afficherEtatGoogle("deconnecte", "Déconnecté");
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
@@ -999,6 +1002,7 @@ function afficherConso(zone) {
     : " · coût : voir les tarifs du fournisseur";
   zone.appendChild(Object.assign(document.createElement("div"), { className: "conso", textContent: txt }));
   derniereConso = null;
+  return c; // pour l'historique (modèle, coût)
 }
 
 // Lit la réponse de Claude envoyée par morceaux (« server-sent events ») et transmet le texte reçu au fur et à mesure.
@@ -1286,7 +1290,7 @@ function demarrerAttente(zone, texte) {
 }
 const texteAnalyse = () => `L'assistant analyse le référentiel${etat.mails.length ? ` et ${etat.mails.length} mails` : ""}…`;
 
-async function envoyer(question) {
+async function envoyer(question, options = {}) {
   question = (question || "").trim();
   if (!question) return;
   if (!etat.faits) { $("sendStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
@@ -1305,7 +1309,8 @@ async function envoyer(question) {
     etat.historique.push({ role: "assistant", content: texte });
     if (bulle) rendreReponse(bulle, texte, true); else afficherMessage("assistant", texte);
     const bulles = $("chat").querySelectorAll(".msg.assistant");
-    afficherConso(bulles[bulles.length - 1]);
+    const conso = afficherConso(bulles[bulles.length - 1]);
+    if (options.historique) enregistrerAnalyse(options.historique, texte, conso, bulles[bulles.length - 1]);
     arreter("");
   } catch (e) {
     if (bulle) bulle.parentElement.remove(); // réponse interrompue : on retire le début affiché
@@ -1333,7 +1338,7 @@ function basculer(occupe) {
   $("btnReset").disabled = occupe;
   // Le diagnostic n'est accessible qu'une fois les données chargées.
   $("btnAdmin").disabled = sansDonnees;
-  $("btnAdmin").title = sansDonnees ? "Connectez-vous d'abord à vos données" : "Accès responsable du service";
+  $("btnAdmin").title = sansDonnees ? "Connectez-vous d'abord à vos données" : "Diagnostic des irritants (accès responsable)";
   document.querySelectorAll(".aideDonnees").forEach((p) => (p.hidden = !sansDonnees));
 }
 // À appeler quand les données sont chargées ou effacées.
@@ -1341,7 +1346,7 @@ function majBoutons() { basculer(occupeEnCours); }
 
 $("send").addEventListener("click", () => envoyer($("question").value));
 $("question").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) envoyer($("question").value); });
-$("btnPoint").addEventListener("click", () => envoyer("Fais le point du jour."));
+$("btnPoint").addEventListener("click", () => envoyer("Fais le point du jour.", { historique: "point" }));
 $("btnRegles").addEventListener("click", () => envoyer("Quels changements de règles as-tu repérés dans les mails, et quelles mises à jour du référentiel proposes-tu ?"));
 $("btnCRA").addEventListener("click", () => {
   envoyer("Fais le point sur les CRA manquants.");
@@ -1350,37 +1355,94 @@ $("btnCRA").addEventListener("click", () => {
 $("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = ""; });
 
 // ---------- 9. Accès responsable et diagnostic des irritants ----------
-// Connexion SIMULÉE pour la démo : la page est publique, n'importe qui peut lire ce code.
-// Ce n'est donc pas une protection ; en production, ce serait l'authentification de l'entreprise.
+// Vraie connexion Google (Firebase Authentication), réservée aux comptes listés ci-dessous.
+// La même liste doit figurer dans les règles de sécurité Firestore : c'est elle qui protège réellement les données.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAfqP7pAPgz2PfwVjocIRMGo471oi95rXI", // identifiant public du projet (pas un secret)
+  authDomain: "agent-facturation-514812.firebaseapp.com",
+  projectId: "agent-facturation-514812",
+  storageBucket: "agent-facturation-514812.firebasestorage.app",
+  messagingSenderId: "854804037546",
+  appId: "1:854804037546:web:d00a75d53145512adeb5d3",
+};
+const COMPTES_RESPONSABLES = ["demo.iae.sca2@gmail.com"];
+let fb = null; // { auth, db } quand Firebase est disponible (page en ligne)
+try {
+  if (window.firebase && location.protocol !== "file:") {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fb = { auth: firebase.auth(), db: firebase.firestore() };
+  }
+} catch (e) { fb = null; }
+
+// Secours SIMULÉ (page ouverte depuis l'ordinateur, ou Firebase injoignable) : ce n'est pas une protection.
 const ADMIN_DEMO = { id: "admin", mdp: "admin" };
-// L'accès est gardé en mémoire seulement : il est oublié au rechargement de la page et à la déconnexion.
-var accesAdmin = false;
-const adminConnecte = () => accesAdmin;
+var accesAdmin = false; // gardé en mémoire seulement
+const emailResponsable = () => (fb && fb.auth.currentUser ? (fb.auth.currentUser.email || "").toLowerCase() : "");
+const adminConnecte = () => (fb ? COMPTES_RESPONSABLES.includes(emailResponsable()) : accesAdmin);
 
 function montrerOnglet(nom) {
   const diag = nom === "diag";
   $("vueDiag").hidden = !diag; $("vueAgent").hidden = diag;
-  $("btnAdmin").textContent = diag ? "← Retour à l'assistant" : "📊 Diagnostic des irritants";
+  $("btnAdmin").textContent = diag ? "← Assistant" : "📊 Diagnostic";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-$("btnAdmin").addEventListener("click", () => {
-  if (!$("vueDiag").hidden) return montrerOnglet("agent");
-  if (adminConnecte()) return montrerOnglet("diag");
+
+// Demande la connexion responsable, puis lance « suite » une fois connecté.
+let apresConnexion = null;
+function demanderAcces(suite) {
+  apresConnexion = suite;
+  $("accesGoogle").hidden = !fb; $("accesSecours").hidden = !!fb;
   $("adminId").value = ""; $("adminMdp").value = ""; $("adminErreur").hidden = true;
   $("dlgAdmin").showModal();
-  $("adminId").focus();
+  (fb ? $("adminGoogle") : $("adminId")).focus();
+}
+function accesAccorde() {
+  $("dlgAdmin").close();
+  const suite = apresConnexion; apresConnexion = null;
+  if (suite) suite();
+}
+function erreurAcces(texte) { $("adminErreur").textContent = texte; $("adminErreur").hidden = false; }
+
+$("adminGoogle").addEventListener("click", async () => {
+  $("adminErreur").hidden = true; $("adminGoogle").disabled = true;
+  try {
+    await fb.auth.setPersistence(firebase.auth.Auth.Persistence.NONE); // oubliée au rechargement de la page
+    const fournisseur = new firebase.auth.GoogleAuthProvider();
+    const indice = { prompt: "select_account" };
+    if (etat.compteGoogle) indice.login_hint = etat.compteGoogle;
+    fournisseur.setCustomParameters(indice);
+    await fb.auth.signInWithPopup(fournisseur);
+    if (!adminConnecte()) {
+      const email = emailResponsable();
+      await fb.auth.signOut();
+      return erreurAcces(`Le compte ${email} n'est pas autorisé à accéder à l'espace responsable.`);
+    }
+    accesAccorde();
+  } catch (e) {
+    erreurAcces(e && e.code === "auth/popup-closed-by-user" ? "Fenêtre de connexion fermée." : "Connexion impossible : " + ((e && e.message) || e));
+  } finally {
+    $("adminGoogle").disabled = false;
+  }
 });
 $("formAdmin").addEventListener("submit", (e) => {
+  if (fb) { e.preventDefault(); return; } // en ligne, seule la connexion Google est acceptée
   if ($("adminId").value.trim() === ADMIN_DEMO.id && $("adminMdp").value === ADMIN_DEMO.mdp) {
     accesAdmin = true;
     $("adminMdp").value = "";
-    montrerOnglet("diag"); // le formulaire (method="dialog") ferme la fenêtre
+    e.preventDefault(); accesAccorde();
   } else {
     e.preventDefault();
-    $("adminErreur").hidden = false; $("adminMdp").value = ""; $("adminMdp").focus();
+    erreurAcces("Identifiant ou mot de passe incorrect."); $("adminMdp").value = ""; $("adminMdp").focus();
   }
 });
-$("adminAnnuler").addEventListener("click", () => $("dlgAdmin").close());
+$("adminAnnuler").addEventListener("click", () => { apresConnexion = null; $("dlgAdmin").close(); });
+
+function ouvrirDiag() { montrerOnglet("diag"); afficherDernierDiag(); }
+$("btnAdmin").addEventListener("click", () => {
+  if (!$("vueDiag").hidden) return montrerOnglet("agent");
+  if (adminConnecte()) return ouvrirDiag();
+  demanderAcces(ouvrirDiag);
+});
 
 $("btnDiag").addEventListener("click", async () => {
   if (!etat.classeur) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
@@ -1404,7 +1466,8 @@ $("btnDiag").addEventListener("click", async () => {
         td.append(document.createElement("br"), b);
       }
     });
-    afficherConso(zone);
+    const conso = afficherConso(zone);
+    enregistrerAnalyse("diag", texte, conso, zone);
     arreter("");
   } catch (e) {
     arreter("");
@@ -1414,6 +1477,100 @@ $("btnDiag").addEventListener("click", async () => {
     basculer(false);
   }
 });
+
+// ---------- 10. Historique des analyses (Firestore) ----------
+// Chaque point du jour et chaque diagnostic est enregistré (texte de la réponse, modèle, coût, date des données).
+// On peut ensuite le rouvrir sans rappeler l'IA. Les enregistrements ne sont ni modifiés ni supprimés depuis la page.
+const TYPES_ANALYSE = { point: "Point du jour", diag: "Diagnostic des irritants" };
+const COLLECTION = "analyses";
+const dateHeure = (d) => (d ? d.toLocaleDateString("fr-FR") + " à " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "en cours d'enregistrement");
+const dateFrCourte = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? iso.split("-").reverse().join("/") : iso || "");
+const coutTexte = (c) => (typeof c === "number" ? "≈ " + c.toFixed(3).replace(".", ",") + " $" : "");
+
+function noteHistorique(zone, texte) {
+  if (zone) zone.appendChild(Object.assign(document.createElement("div"), { className: "noteHist", textContent: texte }));
+}
+async function enregistrerAnalyse(type, texte, conso, zone) {
+  if (!fb) return; // page ouverte depuis l'ordinateur : pas d'historique
+  if (!adminConnecte()) { noteHistorique(zone, "Non enregistrée dans l'historique : connectez-vous comme responsable (bouton « Historique ») pour enregistrer les analyses."); return; }
+  try {
+    await fb.db.collection(COLLECTION).add({
+      type, texte,
+      date: firebase.firestore.FieldValue.serverTimestamp(),
+      dateDonnees: dateJournal(),
+      modele: (conso && conso.modele) || $("model").value || "",
+      cout: conso && typeof conso.cout === "number" ? conso.cout : null,
+      auteur: emailResponsable(),
+      version: VERSION,
+    });
+    noteHistorique(zone, "Enregistrée dans l'historique ✓");
+  } catch (e) {
+    noteHistorique(zone, "Non enregistrée dans l'historique : " + e.message);
+  }
+}
+async function lireHistorique() {
+  const r = await fb.db.collection(COLLECTION).orderBy("date", "desc").limit(30).get();
+  return r.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+// Affiche une analyse enregistrée (lecture seule : pas de validation du référentiel depuis l'historique).
+function rendreAnalyse(conteneur, a) {
+  conteneur.innerHTML = DOMPurify.sanitize(marked.parse(a.texte || ""), { FORBID_TAGS: ["img"] });
+  enrichirReponse(conteneur);
+  conteneur.querySelectorAll(".modifs td:last-child").forEach((td) => { if (td.querySelector("button")) td.textContent = "Consultation seule"; });
+}
+const enteteAnalyse = (a) => `${TYPES_ANALYSE[a.type] || a.type} enregistré le ${dateHeure(a.date && a.date.toDate ? a.date.toDate() : null)}`
+  + (a.dateDonnees ? ` · données au ${dateFrCourte(a.dateDonnees)}` : "") + (a.modele ? ` · ${a.modele}` : "") + (coutTexte(a.cout) ? ` · ${coutTexte(a.cout)}` : "");
+
+function fermerHistorique() { $("pageHistorique").hidden = true; document.body.classList.remove("reglagesOuverts"); }
+async function ouvrirHistorique() {
+  $("pageHistorique").hidden = false; $("pageHistorique").scrollTop = 0;
+  document.body.classList.add("reglagesOuverts");
+  $("histLecture").hidden = true; $("histListe").hidden = true;
+  if (!fb) { $("histStatus").textContent = "Historique indisponible : il ne fonctionne que sur la page en ligne."; return; }
+  $("histStatus").textContent = "Chargement de l'historique…";
+  try {
+    const analyses = await lireHistorique();
+    const corps = $("histListe").tBodies[0]; corps.replaceChildren();
+    analyses.forEach((a) => {
+      const tr = corps.insertRow();
+      [dateHeure(a.date && a.date.toDate ? a.date.toDate() : null), TYPES_ANALYSE[a.type] || a.type, dateFrCourte(a.dateDonnees), a.modele || "", coutTexte(a.cout)]
+        .forEach((v) => { tr.insertCell().textContent = v; });
+      const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Ouvrir";
+      b.addEventListener("click", () => {
+        $("histEntete").textContent = enteteAnalyse(a);
+        rendreAnalyse($("histContenu"), a);
+        $("histListe").hidden = true; $("histStatus").textContent = ""; $("histLecture").hidden = false; $("pageHistorique").scrollTop = 0;
+      });
+      tr.insertCell().appendChild(b);
+    });
+    $("histListe").hidden = !analyses.length;
+    $("histStatus").textContent = analyses.length ? `${analyses.length} analyse${analyses.length > 1 ? "s" : ""} (les 30 plus récentes).` : "Aucune analyse enregistrée pour l'instant.";
+  } catch (e) {
+    $("histStatus").textContent = "Impossible de lire l'historique : " + e.message;
+  }
+}
+$("histRetour").addEventListener("click", () => { $("histLecture").hidden = true; $("histListe").hidden = !$("histListe").tBodies[0].rows.length; });
+$("okHistorique").addEventListener("click", fermerHistorique);
+$("btnHistorique").addEventListener("click", () => {
+  if (!fb || adminConnecte()) return ouvrirHistorique();
+  demanderAcces(ouvrirHistorique);
+});
+
+// À l'ouverture du diagnostic : si aucune analyse n'a été lancée dans cette session, on montre la dernière enregistrée.
+async function afficherDernierDiag() {
+  const zone = $("diagResultat");
+  if (!fb || !adminConnecte() || zone.childElementCount) return;
+  try {
+    const dernier = (await lireHistorique()).find((a) => a.type === "diag");
+    if (!dernier || zone.childElementCount) return;
+    zone.replaceChildren();
+    const entete = Object.assign(document.createElement("p"), { className: "entreeHist", textContent: enteteAnalyse(dernier) + ". Cliquez sur « Analyser les irritants » pour le mettre à jour." });
+    const contenu = document.createElement("div");
+    rendreAnalyse(contenu, dernier);
+    zone.append(entete, contenu);
+    zone.hidden = false;
+  } catch (e) { /* pas d'historique lisible : on n'affiche rien */ }
+}
 
 chargerReglages();
 
