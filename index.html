@@ -25,7 +25,9 @@
     main { max-width: 1000px; margin: 0 auto; padding: 16px; }
     h1 { font-size: 1.4rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
     .version { font-size: 0.75rem; font-weight: 600; color: var(--muted, #5d6675); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
-    .version.decalee { color: #8a5300; }
+    .version.decalee { color: #8a5300; margin-left: 8px; }
+    /* Numéro de version caché en temps normal ; visible (en orange) seulement si les deux fichiers ne correspondent pas */
+    .version:not(.decalee) { display: none; }
     h1 svg { flex: none; color: var(--accent); }
     .envoi { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
     .connexion { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -264,7 +266,7 @@
     <div class="quick" style="margin-top:12px">
       <button id="btnPoint"><span class="titreCarte">Faire le point du jour</span><span class="sousCarte">Écarts à traiter, causes et relances prêtes</span></button>
       <button id="btnCRA"><span class="titreCarte">Relancer les CRA manquants</span><span class="sousCarte">CRA non reçus, montant à risque et relances groupées</span></button>
-      <button id="btnRegles"><span class="titreCarte">Mettre à jour le référentiel</span><span class="sousCarte">Changements repérés dans les mails, à valider</span></button>
+      <button id="btnRegles"><span class="titreCarte">Mettre à jour le référentiel</span><span class="sousCarte">Changements indiqués dans les mails, à valider</span></button>
     </div>
     <p class="hint aideDonnees">Connectez-vous à vos données pour utiliser l'assistant.</p>
     <label for="question">Poser une question à l'assistant</label>
@@ -287,7 +289,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.37 · 16/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.39 · 16/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

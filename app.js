@@ -209,8 +209,9 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.37 · 16/11/2026";
+const VERSION = "v0.39 · 16/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
+if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
   $("version").classList.add("decalee");
   $("version").textContent = "page " + $("version").textContent.trim() + " / app.js " + VERSION + " : rechargez avec Ctrl+F5";
