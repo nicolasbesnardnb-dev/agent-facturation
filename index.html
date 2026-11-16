@@ -82,6 +82,8 @@
       border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05); transition: box-shadow .15s, transform .15s, background .15s; }
     .quick button:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 7%, var(--panel));
       box-shadow: 0 3px 10px rgba(0,0,0,.08); transform: translateY(-1px); }
+    .quick .titreCarte, .quick .sousCarte { display: block; }
+    .quick .sousCarte { font-weight: 400; font-size: .82rem; color: var(--muted); margin-top: 3px; }
     .quick button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) { .quick button { transition: none; } .quick button:not(:disabled):hover { transform: none; } }
     .entete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
@@ -260,9 +262,9 @@
     <h2>Que souhaitez-vous faire ?</h2>
     <div id="chat" style="margin-top:12px"></div>
     <div class="quick" style="margin-top:12px">
-      <button id="btnPoint">Faire le point du jour</button>
-      <button id="btnCRA">Relancer les CRA manquants</button>
-      <button id="btnRegles">Mettre à jour le référentiel</button>
+      <button id="btnPoint"><span class="titreCarte">Faire le point du jour</span><span class="sousCarte">Écarts à traiter, causes et relances prêtes</span></button>
+      <button id="btnCRA"><span class="titreCarte">Relancer les CRA manquants</span><span class="sousCarte">CRA non reçus, montant à risque et relances groupées</span></button>
+      <button id="btnRegles"><span class="titreCarte">Mettre à jour le référentiel</span><span class="sousCarte">Changements repérés dans les mails, à valider</span></button>
     </div>
     <p class="hint aideDonnees">Connectez-vous à vos données pour utiliser l'assistant.</p>
     <label for="question">Poser une question à l'assistant</label>
@@ -285,7 +287,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.36 · 15/11/2026</span></p>
+  <p class="piedPage">Données fictives, créées pour la démonstration · <span class="version" id="version" title="Version de la page">v0.37 · 16/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
