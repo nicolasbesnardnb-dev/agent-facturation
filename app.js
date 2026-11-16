@@ -209,7 +209,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.40 · 16/11/2026";
+const VERSION = "v0.42 · 16/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -1338,7 +1338,7 @@ function basculer(occupe) {
   $("btnReset").disabled = occupe;
   // Le diagnostic n'est accessible qu'une fois les données chargées.
   $("btnAdmin").disabled = sansDonnees;
-  $("btnAdmin").title = sansDonnees ? "Connectez-vous d'abord à vos données" : "Diagnostic des irritants (accès responsable)";
+  $("btnAdmin").title = sansDonnees ? "Connectez-vous d'abord à vos données" : "Diagnostic des irritants (espace direction)";
   document.querySelectorAll(".aideDonnees").forEach((p) => (p.hidden = !sansDonnees));
 }
 // À appeler quand les données sont chargées ou effacées.
@@ -1346,7 +1346,7 @@ function majBoutons() { basculer(occupeEnCours); }
 
 $("send").addEventListener("click", () => envoyer($("question").value));
 $("question").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) envoyer($("question").value); });
-$("btnPoint").addEventListener("click", () => envoyer("Fais le point du jour.", { historique: "point" }));
+$("btnPoint").addEventListener("click", () => envoyer("Fais le point du jour."));
 $("btnRegles").addEventListener("click", () => envoyer("Quels changements de règles as-tu repérés dans les mails, et quelles mises à jour du référentiel proposes-tu ?"));
 $("btnCRA").addEventListener("click", () => {
   envoyer("Fais le point sur les CRA manquants.");
@@ -1354,9 +1354,10 @@ $("btnCRA").addEventListener("click", () => {
 
 $("btnReset").addEventListener("click", () => { etat.historique = []; $("chat").replaceChildren(); $("question").value = ""; $("sendStatus").textContent = ""; });
 
-// ---------- 9. Accès responsable et diagnostic des irritants ----------
-// Vraie connexion Google (Firebase Authentication), réservée aux comptes listés ci-dessous.
-// La même liste doit figurer dans les règles de sécurité Firestore : c'est elle qui protège réellement les données.
+// ---------- 9. Espace direction : diagnostic des irritants ----------
+// Vraie connexion par identifiant et mot de passe (Firebase Authentication), réservée aux comptes ci-dessous.
+// Le chargé de facturation n'y a pas accès. La même liste doit figurer dans les règles de sécurité Firestore :
+// ce sont elles qui protègent réellement les données. Aucun mot de passe n'est écrit dans ce fichier.
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAfqP7pAPgz2PfwVjocIRMGo471oi95rXI", // identifiant public du projet (pas un secret)
   authDomain: "agent-facturation-514812.firebaseapp.com",
@@ -1365,7 +1366,9 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "854804037546",
   appId: "1:854804037546:web:d00a75d53145512adeb5d3",
 };
-const COMPTES_RESPONSABLES = ["demo.iae.sca2@gmail.com"];
+// Adresse « + » de la boîte de démo : même domaine, mais compte distinct de celui du chargé de facturation.
+const COMPTES_DIRECTION = ["demo.iae.sca2+direction@gmail.com"];
+const adresseDirection = (id) => (id.includes("@") ? id : `demo.iae.sca2+${id}@gmail.com`); // « direction » suffit comme identifiant
 let fb = null; // { auth, db } quand Firebase est disponible (page en ligne)
 try {
   if (window.firebase && location.protocol !== "file:") {
@@ -1378,61 +1381,59 @@ try {
 const ADMIN_DEMO = { id: "admin", mdp: "admin" };
 var accesAdmin = false; // gardé en mémoire seulement
 const emailResponsable = () => (fb && fb.auth.currentUser ? (fb.auth.currentUser.email || "").toLowerCase() : "");
-const adminConnecte = () => (fb ? COMPTES_RESPONSABLES.includes(emailResponsable()) : accesAdmin);
+const adminConnecte = () => (fb ? COMPTES_DIRECTION.includes(emailResponsable()) : accesAdmin);
 
 function montrerOnglet(nom) {
   const diag = nom === "diag";
   $("vueDiag").hidden = !diag; $("vueAgent").hidden = diag;
-  $("btnAdmin").textContent = diag ? "← Assistant" : "📊 Diagnostic";
+  $("btnAdmin").textContent = diag ? "← Retour à l'assistant" : "📊 Diagnostic des irritants";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Demande la connexion responsable, puis lance « suite » une fois connecté.
+// Demande la connexion direction, puis lance « suite » une fois connecté.
 let apresConnexion = null;
 function demanderAcces(suite) {
   apresConnexion = suite;
-  $("accesGoogle").hidden = !fb; $("accesSecours").hidden = !!fb;
+  $("accesSecours").hidden = !!fb;
   $("adminId").value = ""; $("adminMdp").value = ""; $("adminErreur").hidden = true;
+  $("adminId").placeholder = fb ? "direction" : "admin";
   $("dlgAdmin").showModal();
-  (fb ? $("adminGoogle") : $("adminId")).focus();
+  $("adminId").focus();
 }
 function accesAccorde() {
   $("dlgAdmin").close();
   const suite = apresConnexion; apresConnexion = null;
   if (suite) suite();
 }
-function erreurAcces(texte) { $("adminErreur").textContent = texte; $("adminErreur").hidden = false; }
+function erreurAcces(texte) { $("adminErreur").textContent = texte; $("adminErreur").hidden = false; $("adminMdp").value = ""; $("adminMdp").focus(); }
+const MESSAGES_AUTH = {
+  "auth/invalid-credential": "Identifiant ou mot de passe incorrect.",
+  "auth/wrong-password": "Identifiant ou mot de passe incorrect.",
+  "auth/user-not-found": "Identifiant ou mot de passe incorrect.",
+  "auth/invalid-email": "Identifiant mal écrit.",
+  "auth/too-many-requests": "Trop d'essais : patientez quelques minutes.",
+  "auth/network-request-failed": "Service de connexion injoignable : vérifiez la connexion internet.",
+};
 
-$("adminGoogle").addEventListener("click", async () => {
-  $("adminErreur").hidden = true; $("adminGoogle").disabled = true;
+$("formAdmin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = $("adminId").value.trim(), mdp = $("adminMdp").value;
+  if (!fb) { // secours simulé
+    if (id === ADMIN_DEMO.id && mdp === ADMIN_DEMO.mdp) { accesAdmin = true; $("adminMdp").value = ""; return accesAccorde(); }
+    return erreurAcces("Identifiant ou mot de passe incorrect.");
+  }
+  const email = adresseDirection(id).toLowerCase();
+  $("adminOk").disabled = true; $("adminErreur").hidden = true;
   try {
     await fb.auth.setPersistence(firebase.auth.Auth.Persistence.NONE); // oubliée au rechargement de la page
-    const fournisseur = new firebase.auth.GoogleAuthProvider();
-    const indice = { prompt: "select_account" };
-    if (etat.compteGoogle) indice.login_hint = etat.compteGoogle;
-    fournisseur.setCustomParameters(indice);
-    await fb.auth.signInWithPopup(fournisseur);
-    if (!adminConnecte()) {
-      const email = emailResponsable();
-      await fb.auth.signOut();
-      return erreurAcces(`Le compte ${email} n'est pas autorisé à accéder à l'espace responsable.`);
-    }
-    accesAccorde();
-  } catch (e) {
-    erreurAcces(e && e.code === "auth/popup-closed-by-user" ? "Fenêtre de connexion fermée." : "Connexion impossible : " + ((e && e.message) || e));
-  } finally {
-    $("adminGoogle").disabled = false;
-  }
-});
-$("formAdmin").addEventListener("submit", (e) => {
-  if (fb) { e.preventDefault(); return; } // en ligne, seule la connexion Google est acceptée
-  if ($("adminId").value.trim() === ADMIN_DEMO.id && $("adminMdp").value === ADMIN_DEMO.mdp) {
-    accesAdmin = true;
+    await fb.auth.signInWithEmailAndPassword(email, mdp);
     $("adminMdp").value = "";
-    e.preventDefault(); accesAccorde();
-  } else {
-    e.preventDefault();
-    erreurAcces("Identifiant ou mot de passe incorrect."); $("adminMdp").value = ""; $("adminMdp").focus();
+    if (!adminConnecte()) { await fb.auth.signOut(); return erreurAcces("Ce compte n'a pas accès à l'espace direction."); }
+    accesAccorde();
+  } catch (err) {
+    erreurAcces(MESSAGES_AUTH[err && err.code] || "Connexion impossible : " + ((err && err.message) || err));
+  } finally {
+    $("adminOk").disabled = false;
   }
 });
 $("adminAnnuler").addEventListener("click", () => { apresConnexion = null; $("dlgAdmin").close(); });
@@ -1492,7 +1493,7 @@ function noteHistorique(zone, texte) {
 }
 async function enregistrerAnalyse(type, texte, conso, zone) {
   if (!fb) return; // page ouverte depuis l'ordinateur : pas d'historique
-  if (!adminConnecte()) { noteHistorique(zone, "Non enregistrée dans l'historique : connectez-vous comme responsable (bouton « Historique ») pour enregistrer les analyses."); return; }
+  if (!adminConnecte()) return; // seul l'espace direction enregistre
   try {
     await fb.db.collection(COLLECTION).add({
       type, texte,
@@ -1503,9 +1504,9 @@ async function enregistrerAnalyse(type, texte, conso, zone) {
       auteur: emailResponsable(),
       version: VERSION,
     });
-    noteHistorique(zone, "Enregistrée dans l'historique ✓");
+    noteHistorique(zone, "Diagnostic enregistré ✓ (bouton « Diagnostics précédents »)");
   } catch (e) {
-    noteHistorique(zone, "Non enregistrée dans l'historique : " + e.message);
+    noteHistorique(zone, "Diagnostic non enregistré : " + e.message);
   }
 }
 async function lireHistorique() {
@@ -1529,7 +1530,7 @@ async function ouvrirHistorique() {
   if (!fb) { $("histStatus").textContent = "Historique indisponible : il ne fonctionne que sur la page en ligne."; return; }
   $("histStatus").textContent = "Chargement de l'historique…";
   try {
-    const analyses = await lireHistorique();
+    const analyses = (await lireHistorique()).filter((a) => a.type === "diag");
     const corps = $("histListe").tBodies[0]; corps.replaceChildren();
     analyses.forEach((a) => {
       const tr = corps.insertRow();
@@ -1544,7 +1545,7 @@ async function ouvrirHistorique() {
       tr.insertCell().appendChild(b);
     });
     $("histListe").hidden = !analyses.length;
-    $("histStatus").textContent = analyses.length ? `${analyses.length} analyse${analyses.length > 1 ? "s" : ""} (les 30 plus récentes).` : "Aucune analyse enregistrée pour l'instant.";
+    $("histStatus").textContent = analyses.length ? `${analyses.length} diagnostic${analyses.length > 1 ? "s" : ""} enregistré${analyses.length > 1 ? "s" : ""}.` : "Aucun diagnostic enregistré pour l'instant.";
   } catch (e) {
     $("histStatus").textContent = "Impossible de lire l'historique : " + e.message;
   }

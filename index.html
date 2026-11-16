@@ -161,8 +161,7 @@
   <div class="boutonsEntete">
     <button id="btnConnexion" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
     <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
-    <button id="btnHistorique" class="secondary" title="Analyses enregistrées (connexion responsable)">🕘 Historique</button>
-    <button id="btnAdmin" class="secondary" title="Diagnostic des irritants (accès responsable)">📊 Diagnostic</button>
+    <button id="btnAdmin" class="secondary" title="Diagnostic des irritants (espace direction)">📊 Diagnostic des irritants</button>
   </div>
   </div>
   <p class="modeleActif compteEntete" id="compteEntete"></p>
@@ -234,24 +233,20 @@
   </section>
 
   <!-- Connexion responsable SIMULÉE : la page est publique, ce n'est pas une protection réelle -->
-  <!-- Accès responsable : vraie connexion Google (Firebase). Le mode de secours simulé ne sert que hors ligne ou depuis l'ordinateur. -->
+  <!-- Espace direction : vraie connexion par identifiant et mot de passe (Firebase Authentication).
+       Hors ligne ou depuis l'ordinateur, un secours SIMULÉ (admin / admin) prend le relais, signalé comme tel. -->
   <dialog id="dlgAdmin">
     <form id="formAdmin" method="dialog">
-      <h2 style="margin-top:0">Accès responsable</h2>
-      <div id="accesGoogle">
-        <p>Connectez-vous avec un compte Google autorisé pour voir le diagnostic des irritants et l'historique des analyses.</p>
-        <button id="adminGoogle" type="button">Se connecter avec Google</button>
-      </div>
-      <div id="accesSecours" hidden>
-        <p class="simule">Connexion de secours simulée (page ouverte depuis l'ordinateur ou service de connexion injoignable) : ce n'est pas une vraie protection.</p>
-        <label for="adminId">Identifiant</label>
-        <input id="adminId" type="text" autocomplete="off">
-        <label for="adminMdp">Mot de passe</label>
-        <input id="adminMdp" type="password" autocomplete="off">
-        <button id="adminOk" type="submit">Se connecter</button>
-      </div>
+      <h2 style="margin-top:0">Espace direction</h2>
+      <p class="hint" style="margin-bottom:6px">Diagnostic des irritants et historique des diagnostics : réservé à la direction financière. Le chargé de facturation n'y a pas accès.</p>
+      <p class="simule" id="accesSecours" hidden>Connexion de secours simulée (page ouverte depuis l'ordinateur ou service de connexion injoignable) : ce n'est pas une vraie protection.</p>
+      <label for="adminId">Identifiant</label>
+      <input id="adminId" type="text" autocomplete="username" spellcheck="false">
+      <label for="adminMdp">Mot de passe</label>
+      <input id="adminMdp" type="password" autocomplete="current-password">
       <div class="error" id="adminErreur" hidden></div>
       <div class="envoi">
+        <button id="adminOk" type="submit">Se connecter</button>
         <button id="adminAnnuler" type="button" class="secondary">Annuler</button>
       </div>
     </form>
@@ -259,10 +254,10 @@
 
   <!-- Historique des analyses enregistrées (Firestore) : plein écran, refermé par « OK » ou Échap -->
   <section id="pageHistorique" hidden>
-    <div class="titreReglages"><h2>🕘 Historique des analyses</h2></div>
-    <p class="hint">Points du jour et diagnostics enregistrés. Les rouvrir ne rappelle pas l'IA : c'est instantané et gratuit. Les mises à jour du référentiel ne se valident pas depuis l'historique.</p>
+    <div class="titreReglages"><h2>🕘 Diagnostics précédents</h2></div>
+    <p class="hint">Diagnostics enregistrés. Les rouvrir ne rappelle pas l'IA : c'est instantané et gratuit.</p>
     <div class="status" id="histStatus"></div>
-    <div class="scroll"><table id="histListe" hidden><thead><tr><th>Enregistrée le</th><th>Analyse</th><th>Données au</th><th>Modèle</th><th>Coût estimé</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="scroll"><table id="histListe" hidden><thead><tr><th>Enregistré le</th><th>Analyse</th><th>Données au</th><th>Modèle</th><th>Coût estimé</th><th></th></tr></thead><tbody></tbody></table></div>
     <div id="histLecture" hidden>
       <button id="histRetour" class="secondary">← Retour à la liste</button>
       <div class="msg assistant"><p class="entreeHist" id="histEntete"></p><div id="histContenu"></div></div>
@@ -276,6 +271,7 @@
       <h2>Diagnostic des irritants · qu'est-ce qui freine le service facturation ?</h2>
       <p class="hint">L'IA lit elle-même les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants, les compte et propose des agents pour y remédier. Les mails ne sont pas utilisés. Données fictives.</p>
       <button id="btnDiag">Analyser les irritants</button>
+      <button id="btnHistorique" class="secondary" title="Rouvrir un diagnostic enregistré, sans rappeler l'IA">🕘 Diagnostics précédents</button>
       <p class="hint aideDonnees">Connectez-vous à vos données pour lancer l'analyse.</p>
       <div class="status" id="diagStatus"></div>
       <div id="diagResultat" class="msg assistant" hidden></div>
@@ -313,7 +309,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.40 · 16/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.42 · 16/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
