@@ -209,7 +209,7 @@ const etat = {
 const $ = (id) => document.getElementById(id);
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.43 · 16/11/2026";
+const VERSION = "v0.44 · 16/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -1438,6 +1438,17 @@ $("formAdmin").addEventListener("submit", async (e) => {
 });
 $("adminAnnuler").addEventListener("click", () => { apresConnexion = null; $("dlgAdmin").close(); });
 
+// Sur la ligne de l'agent déjà construit, un bouton mène à la page de l'assistant facturation.
+function ajouterLienAgent(zone) {
+  zone.querySelectorAll("td").forEach((td) => {
+    if (/^Agent facturation\b/i.test(td.textContent.trim())) {
+      const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Voir l'agent →";
+      b.addEventListener("click", () => { fermerHistorique(); montrerOnglet("agent"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+      td.append(document.createElement("br"), b);
+    }
+  });
+}
+
 function ouvrirDiag() { montrerOnglet("diag"); afficherDernierDiag(); }
 $("btnAdmin").addEventListener("click", () => {
   if (!$("vueDiag").hidden) return montrerOnglet("agent");
@@ -1459,14 +1470,7 @@ $("btnDiag").addEventListener("click", async () => {
     }, { systeme: systemeDiagnostic(), messages: [{ role: "user", content: "Analyse les principaux irritants du service facturation et propose des agents pour y remédier." }] });
     zone.innerHTML = DOMPurify.sanitize(marked.parse(texte), { FORBID_TAGS: ["img"] });
     zone.hidden = false;
-    // Sur la ligne de l'agent déjà construit, un bouton mène à l'onglet 2.
-    zone.querySelectorAll("td").forEach((td) => {
-      if (/^Agent facturation\b/i.test(td.textContent.trim())) {
-        const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Voir l'agent →";
-        b.addEventListener("click", () => { montrerOnglet("agent"); window.scrollTo({ top: 0, behavior: "smooth" }); });
-        td.append(document.createElement("br"), b);
-      }
-    });
+    ajouterLienAgent(zone);
     const conso = afficherConso(zone);
     enregistrerAnalyse("diag", texte, conso, zone);
     arreter("");
@@ -1518,6 +1522,7 @@ function rendreAnalyse(conteneur, a) {
   conteneur.innerHTML = DOMPurify.sanitize(marked.parse(a.texte || ""), { FORBID_TAGS: ["img"] });
   enrichirReponse(conteneur);
   conteneur.querySelectorAll(".modifs td:last-child").forEach((td) => { if (td.querySelector("button")) td.textContent = "Consultation seule"; });
+  if (a.type === "diag") ajouterLienAgent(conteneur);
 }
 const enteteAnalyse = (a) => `${TYPES_ANALYSE[a.type] || a.type} enregistré le ${dateHeure(a.date && a.date.toDate ? a.date.toDate() : null)}`
   + (a.dateDonnees ? ` · données au ${dateFrCourte(a.dateDonnees)}` : "") + (a.modele ? ` · ${a.modele}` : "") + (coutTexte(a.cout) ? ` · ${coutTexte(a.cout)}` : "");
