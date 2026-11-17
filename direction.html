@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Espace direction</title>
+  <!-- Icône d'onglet : dessin original (facture avec le signe euro) -->
+  <link rel="icon" type="image/png" href="data:image/png;base64,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">
+  <style>
+    :root {
+      --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6675;
+      --border: #d9dde4; --accent: #1f5fbf; --accent-text: #ffffff;
+      --user: #e8f0fc; --warn-bg: #fff4e0; --warn: #8a5300; --err-bg: #fde8e8; --err: #a12222;
+      --ok-bg: #e3f4ea; --ok: #14713c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #14171c; --panel: #1d2128; --text: #e6e9ee; --muted: #9aa3b2;
+        --border: #343a45; --accent: #5b93e6; --accent-text: #0d1117;
+        --user: #22324a; --warn-bg: #3a2c12; --warn: #f0c070; --err-bg: #3d1b1b; --err: #f29b9b;
+        --ok-bg: #16331f; --ok: #8fd6a8;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+    .version { font-size: 0.75rem; font-weight: 600; color: var(--muted, #5d6675); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; }
+    .version.decalee { color: #8a5300; margin-left: 8px; }
+    /* Numéro de version caché en temps normal ; visible (en orange) seulement si les deux fichiers ne correspondent pas */
+    .version:not(.decalee) { display: none; }
+    h1 svg { flex: none; color: var(--accent); }
+    .envoi { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .connexion { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: .88rem; font-weight: 600; margin-top: 8px; }
+    .badge.deconnecte { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .badge.connecte { background: var(--ok-bg); color: var(--ok); }
+    .badge.expire { background: var(--warn-bg); color: var(--warn); }
+    button.discret { background: transparent; border-color: transparent; color: var(--muted); font-size: .85rem; text-decoration: underline; padding: 4px 6px; }
+    .sub { color: var(--muted); margin: 0; }
+    /* Bandeau du haut : reste figé, seul le contenu en dessous défile */
+    .bandeau { margin: -16px -16px 16px; padding: 16px 16px 12px; background: var(--bg); border-bottom: 1px solid var(--border); }
+    @media (min-width: 700px) and (min-height: 560px) {
+      html { scroll-padding-top: calc(var(--hauteurBandeau, 0px) + 8px); }
+      .bandeau { position: sticky; top: 0; z-index: 40; box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+    }
+    section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px; margin-bottom: 14px; }
+    section h2 { font-size: 1rem; margin: 0 0 10px; }
+    section h2.titreChoix { font-size: 1.3rem; text-align: center; margin: 4px 0 16px; }
+    label { display: block; font-weight: 600; margin: 8px 0 4px; }
+    input[type=text], input[type=password], select, textarea {
+      width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg); color: var(--text); font: inherit; }
+    textarea { min-height: 70px; resize: vertical; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .row > div { flex: 1 1 220px; }
+    button { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent);
+      background: var(--accent); color: var(--accent-text); font: inherit; cursor: pointer; margin-top: 8px; }
+    button.secondary { background: transparent; color: var(--accent); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .status { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+    .modeleActif { color: var(--muted); font-size: .8rem; margin: -2px 0 4px 44px; }
+    .titreConso { margin: 24px 0 4px; font-size: 1rem; }
+    .notice:empty { display: none; }
+    /* Panneau « Vérifier les chiffres » masqué à la demande : les chiffres restent calculés et envoyés à l'IA */
+    #factsSection { display: none !important; }
+    .piedPage { color: var(--muted); font-size: .75rem; text-align: center; margin: 20px 0 8px; }
+    .notice { background: var(--warn-bg); color: var(--warn); padding: 8px 10px; border-radius: 6px; font-size: .9rem; }
+    .error { background: var(--err-bg); color: var(--err); padding: 8px 10px; border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+    th, td { border: 1px solid var(--border); padding: 4px 6px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); }
+    td.num { text-align: right; white-space: nowrap; }
+    .scroll { overflow-x: auto; }
+    #chat { display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); overflow-x: auto; }
+    .msg.user { background: var(--user); white-space: pre-wrap; }
+    .msg.assistant { background: var(--panel); }
+    .msg .who { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    /* Choix préprogrammés : cartes entourées d'un liseré coloré */
+    .quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 6px; }
+    label[for="question"] { margin-top: 26px; }
+    .quick button { margin: 0; text-align: left; padding: 12px 14px; font-weight: 600;
+      background: var(--panel); color: var(--text); border: 2px solid var(--accent);
+      border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.05); transition: box-shadow .15s, transform .15s, background .15s; }
+    .quick button:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+      box-shadow: 0 3px 10px rgba(0,0,0,.08); transform: translateY(-1px); }
+    .quick .titreCarte, .quick .sousCarte { display: block; }
+    .quick .sousCarte { font-weight: 400; font-size: .82rem; color: var(--muted); margin-top: 3px; }
+    .quick button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { .quick button { transition: none; } .quick button:not(:disabled):hover { transform: none; } }
+    .entete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .entete h1 { flex: 1 1 auto; }
+    .boutonsEntete { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+    .boutonsEntete button { margin-top: 0; white-space: nowrap; font-size: .88rem; padding: 6px 10px; }
+    /* Réglages : ouverts par le bouton « ⚙ Réglages » en haut à droite, invisibles quand ils sont fermés */
+    #reglages > summary { display: none; }
+    #reglages:not([open]) { display: none; }
+    /* Ouverts, les réglages occupent tout l'écran, comme une page à part (les données chargées restent en mémoire) */
+    #reglages[open] { position: fixed; inset: 0; z-index: 50; margin: 0; border: none; border-radius: 0;
+      overflow-y: auto; background: var(--bg); padding: 16px max(16px, calc((100% - 1000px) / 2)); }
+    body.reglagesOuverts { overflow: hidden; }
+    /* Connexion aux données : page plein écran ouverte par le bouton « Connexion » en haut */
+    #pageConnexion, #pageHistorique { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--bg);
+      padding: 16px max(16px, calc((100% - 1000px) / 2)); }
+    #pageConnexion[hidden], #pageHistorique[hidden] { display: none; }
+    /* Bouton OK fixé en bas à droite de l'écran : il ne bouge plus quand le contenu change */
+    #pageConnexion .ok, #pageHistorique .ok, #reglages .ok { position: fixed; z-index: 51; bottom: 0; left: 0; right: 0; text-align: right;
+      padding: 12px max(16px, calc((100% - 1000px) / 2)); background: var(--bg); border-top: 1px solid var(--border); }
+    #pageConnexion .ok button, #pageHistorique .ok button, #reglages .ok button { margin-top: 0; }
+    #pageConnexion, #pageHistorique, #reglages[open] { padding-bottom: 80px !important; }
+    #histListe td button { margin-top: 0; padding: 4px 10px; }
+    #histLecture .entreeHist { color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
+    .noteHist { color: var(--muted); font-size: .78rem; margin-top: 4px; }
+    .compteEntete:empty { display: none; }
+    .modeleActif.compteEntete { margin-bottom: 0; }
+    .titreReglages { display: flex; justify-content: space-between; align-items: center; }
+    .titreReglages h2 { margin: 0; }
+    .titreReglages button { margin-top: 0; }
+    .saisie { display: flex; gap: 8px; align-items: stretch; }
+    .saisie textarea { flex: 1; }
+    .saisie button { margin-top: 0; align-self: flex-end; }
+    dialog { border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; max-width: 360px; width: calc(100% - 32px); background: var(--panel, #fff); color: inherit; }
+    dialog::backdrop { background: rgba(0,0,0,.35); }
+    dialog label { display: block; margin-top: 10px; }
+    dialog input { width: 100%; }
+    .simule { font-size: .85rem; color: #8a5300; background: #fff4e0; border-radius: 6px; padding: 6px 8px; }
+    .attente::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%;
+      background: var(--accent); animation: pulse 1s ease-in-out infinite; vertical-align: middle; }
+    @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.1); } }
+    @media (prefers-reduced-motion: reduce) { .attente::before { animation: none; } }
+    details.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+    details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+    details[open] > summary { margin-bottom: 8px; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 4px 0 0; }
+    .totaux { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .totaux div { flex: 1 1 200px; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+    .totaux b { display: block; font-size: 1.15rem; }
+    .totaux span { color: var(--muted); font-size: .85rem; }
+    .brouillon { border: 1px dashed var(--border); border-radius: 6px; padding: 8px 10px; margin: 8px 0; background: var(--bg); }
+    .brouillon pre { white-space: pre-wrap; margin: 0 0 6px; font: inherit; }
+    a.bouton { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; }
+    .modifs td button { margin-top: 0; padding: 4px 10px; margin-right: 4px; }
+    .modifs td.deja { color: var(--muted); font-style: italic; }
+  </style>
+</head>
+<body data-page="direction">
+<main>
+  <header class="bandeau">
+  <div class="entete">
+  <h1>
+    <!-- Pictogramme original : une facture avec une coche -->
+    <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3h11l6 6v19a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+      <path d="M19 3v6h6"/>
+      <path d="M11 13h7M11 17h5"/>
+      <path d="M12 23l3 3 6-7"/>
+    </svg>
+    Espace direction · service facturation
+  </h1>
+  <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
+  <div class="boutonsEntete">
+    <button id="btnConnexion" title="Connexion avec le compte Google de la direction">🔌 Connexion</button>
+    <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
+  </div>
+  </div>
+  <p class="modeleActif compteEntete" id="compteEntete"></p>
+  <p class="modeleActif" id="modeleActif"></p>
+  <p class="sub">Pilotage : irritants du service, agents IA à construire<br>Réservé à la direction · lecture seule du référentiel</p>
+  </header>
+
+  <!-- Réglages : fournisseur d'IA, modèle, clé (jamais écrite dans un fichier). Ouverts seulement par le bouton (ou si une question est posée sans clé). -->
+  <details class="panel" id="reglages">
+    <summary>⚙ Réglages (modèle d'IA et clé)</summary>
+    <div class="titreReglages">
+      <h2>⚙ Réglages : modèle d'IA et clé</h2>
+    </div>
+    <div class="row">
+      <div>
+        <label for="provider">Fournisseur</label>
+        <select id="provider">
+          <option value="claude">Claude (Anthropic, payant)</option>
+          <option value="groq">Groq (offre gratuite limitée)</option>
+          <option value="openai">ChatGPT (OpenAI, payant) · expérimental</option>
+          <option value="gemini">Gemini (Google) · expérimental</option>
+          <option value="mistral">Mistral (Mistral AI) · expérimental</option>
+        </select>
+      </div>
+      <div>
+        <label for="model">Modèle</label>
+        <select id="model"></select>
+        <button id="listModels" class="secondary">Actualiser la liste (modèles de votre clé)</button>
+        <div class="status" id="modelStatus"></div>
+      </div>
+    </div>
+    <label for="effort">Niveau de réflexion (Claude)</label>
+    <select id="effort">
+      <option value="low">Rapide : réponse plus vite et moins chère, analyse moins poussée</option>
+      <option value="medium">Équilibré (recommandé)</option>
+      <option value="high">Approfondi : plus lent et plus cher</option>
+    </select>
+    <label for="apiKey">Clé API (champ masqué, gardée dans ce navigateur uniquement)</label>
+    <input type="password" id="apiKey" autocomplete="off" placeholder="Collez votre clé ici">
+    <button id="saveKey">Enregistrer la clé</button>
+    <button id="forgetKey" class="secondary">Oublier la clé</button>
+    <button id="testKey" class="secondary" title="Vérifie la clé auprès du fournisseur, sans poser de question à l'IA (gratuit)">Tester la clé</button>
+    <div class="status" id="keyStatus"></div>
+    <h3 class="titreConso">Consommation de l'IA (depuis l'ouverture de la page)</h3>
+    <p class="hint">Estimation calculée par la page à partir des tokens de chaque appel : ce n'est pas la facture du fournisseur. La liste repart de zéro quand la page est rechargée.</p>
+    <div class="scroll"><table id="consoListe" hidden><thead><tr><th>Heure</th><th>Usage</th><th>Modèle</th><th>Tokens envoyés</th><th>Tokens de réponse et de réflexion</th><th>Coût estimé</th></tr></thead><tbody></tbody></table></div>
+    <div class="status" id="consoTotal">Aucun appel à l'IA depuis l'ouverture de la page.</div>
+    <div class="ok"><button id="fermerReglages">OK</button></div>
+  </details>
+
+  <!-- Les données sont lues dans le navigateur ; elles ne partent nulle part ailleurs qu'au modèle d'IA -->
+  <section id="pageConnexion" hidden>
+    <div class="titreReglages">
+      <h2>🔌 Connexion à vos données</h2>
+    </div>
+    <div class="connexion">
+      <button id="btnGoogle">Se connecter avec le compte Google de la direction</button>
+      <span id="etatGoogle" class="badge deconnecte" role="status"></span>
+      <button id="btnDeconnexion" class="secondary" hidden>Se déconnecter</button>
+    </div>
+    <p class="hint">Accès réservé aux comptes de la direction. Lecture seule du référentiel (Google Sheet partagé) : aucun accès aux mails, aucune modification possible depuis cette page.</p>
+    <div class="status" id="googleStatus"></div>
+    <div class="status"><span id="fileStatus">Aucun fichier chargé.</span></div>
+    <details id="local">
+      <summary>Charger depuis l'ordinateur (solution de secours)</summary>
+      <label for="file">Fichier Excel (Donnees_fictives_facturation.xlsx)</label>
+      <input type="file" id="file" accept=".xlsx">
+    </details>
+    <div class="ok"><button id="okConnexion">OK</button></div>
+  </section>
+
+  <!-- En ligne, la direction se connecte avec son compte Google (Firebase Authentication).
+       Cette fenêtre ne sert qu'au secours SIMULÉ (admin / admin), page ouverte depuis l'ordinateur : ce n'est pas une protection. -->
+  <dialog id="dlgAdmin">
+    <form id="formAdmin" method="dialog">
+      <h2 style="margin-top:0">Espace direction</h2>
+      <p class="hint" style="margin-bottom:6px">Diagnostic des irritants et historique des diagnostics : réservé à la direction financière. Le chargé de facturation n'y a pas accès.</p>
+      <p class="simule" id="accesSecours" hidden>Connexion de secours simulée (page ouverte depuis l'ordinateur ou service de connexion injoignable) : ce n'est pas une vraie protection.</p>
+      <label for="adminId">Identifiant</label>
+      <input id="adminId" type="text" autocomplete="username" spellcheck="false">
+      <label for="adminMdp">Mot de passe</label>
+      <input id="adminMdp" type="password" autocomplete="current-password">
+      <div class="error" id="adminErreur" hidden></div>
+      <div class="envoi">
+        <button id="adminOk" type="submit">Se connecter</button>
+        <button id="adminAnnuler" type="button" class="secondary">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Historique des analyses enregistrées (Firestore) : plein écran, refermé par « OK » ou Échap -->
+  <section id="pageHistorique" hidden>
+    <div class="titreReglages"><h2>🕘 Diagnostics précédents</h2></div>
+    <p class="hint">Diagnostics enregistrés. Les rouvrir ne rappelle pas l'IA : c'est instantané et gratuit.</p>
+    <div class="status" id="histStatus"></div>
+    <div class="scroll"><table id="histListe" hidden><thead><tr><th>Enregistré le</th><th>Analyse</th><th>Données au</th><th>Modèle</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div id="histLecture" hidden>
+      <button id="histRetour" class="secondary">← Retour à la liste</button>
+      <div class="msg assistant"><p class="entreeHist" id="histEntete"></p><div id="histContenu"></div></div>
+    </div>
+    <div class="ok"><button id="okHistorique">OK</button></div>
+  </section>
+
+  <!-- Vue du responsable : diagnostic des irritants -->
+  <div id="vueDiag">
+    <section>
+      <h2>Diagnostic des irritants · qu'est-ce qui freine le service facturation ?</h2>
+      <p class="hint">L'IA lit elle-même les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants, les compte et propose des agents pour y remédier.</p>
+      <button id="btnDiag">Analyser les irritants</button>
+      <button id="btnHistorique" class="secondary" title="Rouvrir un diagnostic enregistré, sans rappeler l'IA">🕘 Diagnostics précédents</button>
+      <p class="hint aideDonnees">Connectez-vous avec le compte Google de la direction (bouton « Connexion ») pour lancer l'analyse.</p>
+      <div class="status" id="diagStatus"></div>
+      <div id="diagResultat" class="msg assistant" hidden></div>
+    </section>
+  </div>
+
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.51 · 17/11/2026</span></p>
+</main>
+
+<!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Firebase (connexion responsable et historique des analyses) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -206,10 +206,16 @@ const etat = {
   classeur: null,     // le référentiel lu (pour le diagnostic)
 };
 
-const $ = (id) => document.getElementById(id);
+// Deux pages partagent ce fichier : l'assistant du chargé de facturation (index.html)
+// et l'espace direction (direction.html, <body data-page="direction">).
+const PAGE = document.body.dataset.page === "direction" ? "direction" : "assistant";
+// Un élément absent de la page (par exemple la conversation, dans l'espace direction) est remplacé
+// par un élément « fantôme » invisible : le code commun fonctionne sans erreur sur les deux pages.
+const fantomes = {};
+const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.50 · 16/11/2026";
+const VERSION = "v0.51 · 17/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -694,7 +700,8 @@ function majBoutonConnexion(etatConnexion) {
   $("btnConnexion").textContent = connecte ? "🔌 Déconnexion" : "🔌 Connexion";
   // Bleu tant qu'aucune donnée n'est chargée : c'est la première chose à faire.
   $("btnConnexion").classList.toggle("secondary", connecte || !!etat.classeur);
-  $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées et la conversation" : "Connexion à Gmail et Google Drive";
+  $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées" + (PAGE === "direction" ? "" : " et la conversation")
+    : PAGE === "direction" ? "Connexion avec le compte Google de la direction" : "Connexion à Gmail et Google Drive";
   let texte = "";
   if (etatConnexion === "connecte") texte = "Compte connecté : " + etat.compteGoogle;
   else if (etatConnexion === "expire") texte = "Compte connecté : " + etat.compteGoogle + " (connexion expirée)";
@@ -726,6 +733,7 @@ afficherEtatGoogle("deconnecte", "Déconnecté");
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
 
 $("btnGoogle").addEventListener("click", () => {
+  if (PAGE === "direction") return connexionDirection();
   if (location.protocol === "file:") { $("googleStatus").textContent = "La connexion Google ne marche que sur la page en ligne (GitHub Pages), pas sur un fichier ouvert depuis l'ordinateur."; return; }
   if (!GOOGLE_CLIENT_ID) { $("googleStatus").textContent = "Identifiant Google pas encore configuré dans app.js."; return; }
   if (!window.google || !google.accounts) { $("googleStatus").textContent = "Le module de connexion Google n'est pas encore chargé. Réessayez dans quelques secondes."; return; }
@@ -1380,8 +1388,9 @@ const FIREBASE_CONFIG = {
   appId: "1:854804037546:web:d00a75d53145512adeb5d3",
 };
 // Adresse « + » de la boîte de démo : même domaine, mais compte distinct de celui du chargé de facturation.
-const COMPTES_DIRECTION = ["demo.iae.sca2+direction@gmail.com"];
-const adresseDirection = (id) => (id.includes("@") ? id : `demo.iae.sca2+${id}@gmail.com`); // « direction » suffit comme identifiant
+// Comptes Google autorisés dans l'espace direction. La même liste figure dans les règles Firestore.
+const COMPTES_DIRECTION = ["direction.sca2@gmail.com"];
+const adresseDirection = (id) => id; // n'a plus d'usage qu'en secours simulé (admin / admin)
 let fb = null; // { auth, db } quand Firebase est disponible (page en ligne)
 try {
   if (window.firebase && location.protocol !== "file:") {
@@ -1390,6 +1399,43 @@ try {
   }
 } catch (e) { fb = null; }
 
+// Connexion de la direction avec son compte Google (Firebase Authentication) :
+// une seule fenêtre donne l'identité (vérifiée par les règles Firestore) et la lecture seule du Google Sheet partagé.
+async function connexionDirection() {
+  if (!fb) { $("googleStatus").textContent = "La connexion Google ne fonctionne que sur la page en ligne. Chargez l'Excel depuis l'ordinateur ci-dessous."; return; }
+  const fournisseur = new firebase.auth.GoogleAuthProvider();
+  fournisseur.addScope("https://www.googleapis.com/auth/drive.readonly"); // lecture seule du Drive : ni Gmail, ni écriture
+  fournisseur.setCustomParameters({ prompt: "select_account" });
+  $("googleStatus").textContent = "Connexion en cours…";
+  try {
+    await fb.auth.setPersistence(firebase.auth.Auth.Persistence.NONE); // oubliée au rechargement de la page
+    const res = await fb.auth.signInWithPopup(fournisseur);
+    const email = ((res.user && res.user.email) || "").toLowerCase();
+    if (!COMPTES_DIRECTION.includes(email)) {
+      await fb.auth.signOut();
+      $("googleStatus").textContent = `Le compte ${email} n'a pas accès à l'espace direction.`;
+      return;
+    }
+    jetonGoogle = res.credential && res.credential.accessToken;
+    if (!jetonGoogle) throw new Error("Google n'a pas transmis l'autorisation de lecture du Drive.");
+    clearTimeout(minuteurExpiration);
+    minuteurExpiration = setTimeout(() => afficherEtatGoogle("expire", "Connexion expirée : reconnectez-vous"), 3600 * 1000); // environ 1 heure
+    etat.compteGoogle = email;
+    nomCompteGoogle = (res.user && res.user.displayName) || email;
+    afficherEtatGoogle("connecte", "Connecté · " + (res.user.displayName ? `${res.user.displayName} (${email})` : email));
+    $("googleStatus").textContent = `Connecté à ${email}. Recherche du référentiel sur Drive…`;
+    await chargerReferentielDrive();
+    $("googleStatus").textContent = "";
+    fermerConnexion();
+    afficherDernierDiag();
+  } catch (e) {
+    const code = e && e.code;
+    $("googleStatus").textContent = code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request" ? "Connexion annulée."
+      : code === "auth/popup-blocked" ? "La fenêtre de connexion a été bloquée par le navigateur : autorisez les fenêtres surgissantes pour ce site."
+      : "Connexion impossible : " + ((e && e.message) || e);
+  }
+}
+
 // Secours SIMULÉ (page ouverte depuis l'ordinateur, ou Firebase injoignable) : ce n'est pas une protection.
 const ADMIN_DEMO = { id: "admin", mdp: "admin" };
 var accesAdmin = false; // gardé en mémoire seulement
@@ -1397,7 +1443,7 @@ const emailResponsable = () => (fb && fb.auth.currentUser ? (fb.auth.currentUser
 const adminConnecte = () => (fb ? COMPTES_DIRECTION.includes(emailResponsable()) : accesAdmin);
 
 function montrerOnglet(nom) {
-  const diag = nom === "diag";
+  const diag = PAGE === "direction" || nom === "diag"; // l'espace direction n'affiche que le diagnostic
   $("vueDiag").hidden = !diag; $("vueAgent").hidden = diag;
   $("btnAdmin").textContent = diag ? "← Retour à l'assistant" : "📊 Diagnostic des irritants";
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1406,6 +1452,10 @@ function montrerOnglet(nom) {
 // Demande la connexion direction, puis lance « suite » une fois connecté.
 let apresConnexion = null;
 function demanderAcces(suite) {
+  if (PAGE === "direction" && fb) { // en ligne, la direction se connecte avec son compte Google
+    $("googleStatus").textContent = "Connectez-vous d'abord avec le compte Google de la direction.";
+    return ouvrirConnexion();
+  }
   apresConnexion = suite;
   $("accesSecours").hidden = !!fb;
   $("adminId").value = ""; $("adminMdp").value = ""; $("adminErreur").hidden = true;
@@ -1456,7 +1506,10 @@ function ajouterLienAgent(zone) {
   zone.querySelectorAll("td").forEach((td) => {
     if (/^Agent facturation\b/i.test(td.textContent.trim())) {
       const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Voir l'agent →";
-      b.addEventListener("click", () => { fermerHistorique(); montrerOnglet("agent"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+      b.addEventListener("click", () => {
+        if (PAGE === "direction") { window.open("index.html", "_blank", "noopener"); return; } // l'assistant est une autre page
+        fermerHistorique(); montrerOnglet("agent"); window.scrollTo({ top: 0, behavior: "smooth" });
+      });
       td.append(document.createElement("br"), b);
     }
   });
@@ -1470,6 +1523,7 @@ $("btnAdmin").addEventListener("click", () => {
 });
 
 $("btnDiag").addEventListener("click", async () => {
+  if (PAGE === "direction" && !adminConnecte()) return demanderAcces(() => $("btnDiag").click()); // secours hors ligne
   if (!etat.classeur) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
   const zone = $("diagResultat");
   basculer(true);

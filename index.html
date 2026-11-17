@@ -160,11 +160,9 @@
     </svg>
     Assistant du service facturation
   </h1>
-  <!-- Accès responsable : bascule entre l'assistant et le diagnostic (connexion simulée) -->
   <div class="boutonsEntete">
     <button id="btnConnexion" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
     <button id="btnReglages" class="secondary" title="Fournisseur d'IA, modèle et clé">⚙ Réglages</button>
-    <button id="btnAdmin" class="secondary" title="Diagnostic des irritants (espace direction)">📊 Diagnostic des irritants</button>
   </div>
   </div>
   <p class="modeleActif compteEntete" id="compteEntete"></p>
@@ -239,51 +237,7 @@
     <div class="ok"><button id="okConnexion">OK</button></div>
   </section>
 
-  <!-- Connexion responsable SIMULÉE : la page est publique, ce n'est pas une protection réelle -->
-  <!-- Espace direction : vraie connexion par identifiant et mot de passe (Firebase Authentication).
-       Hors ligne ou depuis l'ordinateur, un secours SIMULÉ (admin / admin) prend le relais, signalé comme tel. -->
-  <dialog id="dlgAdmin">
-    <form id="formAdmin" method="dialog">
-      <h2 style="margin-top:0">Espace direction</h2>
-      <p class="hint" style="margin-bottom:6px">Diagnostic des irritants et historique des diagnostics : réservé à la direction financière. Le chargé de facturation n'y a pas accès.</p>
-      <p class="simule" id="accesSecours" hidden>Connexion de secours simulée (page ouverte depuis l'ordinateur ou service de connexion injoignable) : ce n'est pas une vraie protection.</p>
-      <label for="adminId">Identifiant</label>
-      <input id="adminId" type="text" autocomplete="username" spellcheck="false">
-      <label for="adminMdp">Mot de passe</label>
-      <input id="adminMdp" type="password" autocomplete="current-password">
-      <div class="error" id="adminErreur" hidden></div>
-      <div class="envoi">
-        <button id="adminOk" type="submit">Se connecter</button>
-        <button id="adminAnnuler" type="button" class="secondary">Annuler</button>
-      </div>
-    </form>
-  </dialog>
 
-  <!-- Historique des analyses enregistrées (Firestore) : plein écran, refermé par « OK » ou Échap -->
-  <section id="pageHistorique" hidden>
-    <div class="titreReglages"><h2>🕘 Diagnostics précédents</h2></div>
-    <p class="hint">Diagnostics enregistrés. Les rouvrir ne rappelle pas l'IA : c'est instantané et gratuit.</p>
-    <div class="status" id="histStatus"></div>
-    <div class="scroll"><table id="histListe" hidden><thead><tr><th>Enregistré le</th><th>Analyse</th><th>Données au</th><th>Modèle</th><th>Coût estimé</th><th></th></tr></thead><tbody></tbody></table></div>
-    <div id="histLecture" hidden>
-      <button id="histRetour" class="secondary">← Retour à la liste</button>
-      <div class="msg assistant"><p class="entreeHist" id="histEntete"></p><div id="histContenu"></div></div>
-    </div>
-    <div class="ok"><button id="okHistorique">OK</button></div>
-  </section>
-
-  <!-- Vue du responsable : diagnostic des irritants -->
-  <div id="vueDiag" hidden>
-    <section>
-      <h2>Diagnostic des irritants · qu'est-ce qui freine le service facturation ?</h2>
-      <p class="hint">L'IA lit elle-même les traces du référentiel (journal d'activité, factures, réalisé), repère les irritants, les compte et propose des agents pour y remédier.</p>
-      <button id="btnDiag">Analyser les irritants</button>
-      <button id="btnHistorique" class="secondary" title="Rouvrir un diagnostic enregistré, sans rappeler l'IA">🕘 Diagnostics précédents</button>
-      <p class="hint aideDonnees">Connectez-vous à vos données pour lancer l'analyse.</p>
-      <div class="status" id="diagStatus"></div>
-      <div id="diagResultat" class="msg assistant" hidden></div>
-    </section>
-  </div>
 
   <div id="vueAgent">
   <!-- La conversation -->
@@ -316,7 +270,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.50 · 16/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.51 · 17/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
@@ -325,10 +279,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<!-- Firebase (connexion responsable et historique des analyses) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
