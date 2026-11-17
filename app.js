@@ -215,7 +215,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.51 · 17/11/2026";
+const VERSION = "v0.52 · 17/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -1501,16 +1501,12 @@ $("formAdmin").addEventListener("submit", async (e) => {
 });
 $("adminAnnuler").addEventListener("click", () => { apresConnexion = null; $("dlgAdmin").close(); });
 
-// Sur la ligne de l'agent déjà construit, un bouton mène à la page de l'assistant facturation.
+// Sur la ligne de l'agent déjà construit : une mention (non cliquable). L'assistant est l'outil du chargé de facturation,
+// il ne s'ouvre pas depuis l'espace direction (pas de mails, référentiel en lecture seule).
 function ajouterLienAgent(zone) {
   zone.querySelectorAll("td").forEach((td) => {
-    if (/^Agent facturation\b/i.test(td.textContent.trim())) {
-      const b = document.createElement("button"); b.className = "secondary"; b.textContent = "Voir l'agent →";
-      b.addEventListener("click", () => {
-        if (PAGE === "direction") { window.open("index.html", "_blank", "noopener"); return; } // l'assistant est une autre page
-        fermerHistorique(); montrerOnglet("agent"); window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-      td.append(document.createElement("br"), b);
+    if (/^Agent facturation\b/i.test(td.textContent.trim()) && !td.querySelector(".mentionAgent")) {
+      td.append(document.createElement("br"), Object.assign(document.createElement("span"), { className: "hint mentionAgent", textContent: "En service · utilisé par le chargé de facturation" }));
     }
   });
 }
