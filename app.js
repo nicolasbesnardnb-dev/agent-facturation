@@ -145,7 +145,9 @@ Règles
 - Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
 - Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
-- Toute estimation (temps passé, montant) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
+- Montants : pour l'argent bloqué ou à risque, reprends exactement les montants du bloc « MONTANTS DE RÉFÉRENCE » (calculés par le programme à partir de l'onglet Rapprochement). Ne les recalcule pas et ne les additionne pas entre eux. Le chiffre d'affaires à risque faute de CRA est une estimation : écris-le « estimé ». Si aucun montant de référence ne correspond à un irritant, écris « non chiffré » plutôt que d'en inventer un.
+- Toute autre estimation (temps passé, par exemple) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
+- Priorité, dans cet ordre : 1) d'abord les irritants qui bloquent ou retardent la facturation, donc la trésorerie (CRA manquants, réalisé en attente de validation, bon de commande absent ou dépassé, factures rejetées), qu'ils soient chiffrés ou non ; 2) puis la fréquence constatée ; 3) puis le nombre de personnes touchées. À critère égal, le montant le plus élevé passe devant.
 - Agents déjà connus, avec un statut fixé que tu reprends exactement :
 ${AGENTS_CONNUS.map((a) => `  - « ${a.nom} » — statut « ${a.statut} » — ${a.role}`).join("\n")}
   Si un irritant est couvert par l'un d'eux, écris exactement son nom et son statut. Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
@@ -154,7 +156,7 @@ Format de la réponse (lue à l'écran pendant une démonstration)
 ## En bref
 3 lignes au maximum.
 ## Irritants
-Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact estimé (hypothèse) | Agent proposé | Statut. Priorité 1 = la plus haute.
+Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus) | Agent proposé | Statut. Priorité 1 = la plus haute.
 ## Prochain agent à construire
 Une fiche pour l'agent le plus prioritaire dont le statut n'est PAS « Implémenté » : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
 Réponds en français, en Markdown, en 450 mots au maximum.`;
@@ -215,7 +217,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.52 · 17/11/2026";
+const VERSION = "v0.53 · 17/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -458,7 +460,23 @@ function systemeDiagnostic() {
   return [
     INSTRUCTIONS_DIAGNOSTIC,
     "## ONGLETS DU RÉFÉRENTIEL\n" + classeurEnTexte({ SheetNames: onglets, Sheets: etat.classeur.Sheets }),
+    montantsReference(),
   ].join("\n\n");
+}
+
+// Montants de référence pour le diagnostic : repris de l'onglet Rapprochement par le programme (mêmes chiffres que le point du jour).
+function montantsReference() {
+  const f = etat.faits;
+  if (!f) return "## MONTANTS DE RÉFÉRENCE\nNon disponibles (onglet Rapprochement illisible).";
+  const actives = f.anomalies.filter((a) => !a.info && a.type !== "Écart TJM");
+  const parType = {};
+  actives.forEach((a) => { parType[a.type] = (parType[a.type] || 0) + a.montant; });
+  const contratsCRA = [...new Set(f.cra.map((c) => c.contrat))];
+  return [`## MONTANTS DE RÉFÉRENCE (onglet Rapprochement, date de référence ${dateFr(f.dateRef)} ; calculés par le programme, à reprendre tels quels)`,
+    `- Réalisé non facturé : ${euros(f.totaux.nonFacture)} HT, dont ` + Object.entries(parType).map(([t, m]) => `« ${t} » ${euros(m)}`).join(", ") + ".",
+    `- Écarts de TJM facturé / contrat : ${euros(f.totaux.ecartTJM)} HT.`,
+    `- Chiffre d'affaires ESTIMÉ à risque faute de CRA (${f.moisCRA}) : ${euros(f.totaux.risqueCRA)} HT, ${f.cra.length} CRA non reçus, contrats ${contratsCRA.join(", ") || "aucun"}. Estimation du fichier, à ne pas additionner au réalisé non facturé.`,
+    `- Bons de commande en alerte (en jours, non chiffrés en euros) : ` + (f.bc.map((b) => `${b.contrat} ${b.type} (${b.restants} j restants)`).join(" ; ") || "aucun") + "."].join("\n");
 }
 
 // Lit l'onglet Rapprochement et relève les anomalies, sans IA.
