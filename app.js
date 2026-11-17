@@ -143,6 +143,8 @@ Ta mission : lire toi-même les onglets du référentiel fournis (journal d'acti
 
 Règles
 - Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
+- Relances et mails : compte des envois, pas des lignes. Le journal note une ligne par consultant pour un seul mail : même jour, même destinataire et même objet = 1 envoi (exemple : 2 lignes du même jour pour C014 et C022 adressées au même manager = 1 relance).
+- Un seul irritant par ligne du tableau : ne regroupe pas deux sujets différents (par exemple, les exports Excel et un écart de TJM sont deux irritants distincts).
 - Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
 - Montants : pour l'argent bloqué ou à risque, reprends exactement les montants du bloc « MONTANTS DE RÉFÉRENCE » (calculés par le programme à partir de l'onglet Rapprochement). Ne les recalcule pas et ne les additionne pas entre eux. Le chiffre d'affaires à risque faute de CRA est une estimation : écris-le « estimé ». Si aucun montant de référence ne correspond à un irritant, écris « non chiffré » plutôt que d'en inventer un.
@@ -150,7 +152,9 @@ Règles
 - Priorité, dans cet ordre : 1) d'abord les irritants qui bloquent ou retardent la facturation, donc la trésorerie (CRA manquants, réalisé en attente de validation, bon de commande absent ou dépassé, factures rejetées), qu'ils soient chiffrés ou non ; 2) puis la fréquence constatée ; 3) puis le nombre de personnes touchées. À critère égal, le montant le plus élevé passe devant.
 - Agents déjà connus, avec un statut fixé que tu reprends exactement :
 ${AGENTS_CONNUS.map((a) => `  - « ${a.nom} » — statut « ${a.statut} » — ${a.role}`).join("\n")}
-  Si un irritant est couvert par l'un d'eux, écris exactement son nom et son statut. Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
+  Si un irritant est couvert par l'un d'eux, écris exactement son nom. Statut à écrire : « Couvert · agent en service » pour un agent « Implémenté » (les données analysées datent d'avant sa mise en service : l'irritant reste visible, c'est normal) ; le statut fixé pour les autres (« Spécifié »…). Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
+  Les relances restées sans réponse et les réponses qui se perdent relèvent de l'« Agent de veille des mails facturation » : cite-le pour ces irritants plutôt que d'inventer un autre agent.
+  Si au moins un irritant est couvert par un agent en service, dis-le en une phrase dans « En bref ».
 
 Format de la réponse (lue à l'écran pendant une démonstration)
 ## En bref
@@ -158,7 +162,7 @@ Format de la réponse (lue à l'écran pendant une démonstration)
 ## Irritants
 Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus) | Agent proposé | Statut. Priorité 1 = la plus haute.
 ## Prochain agent à construire
-Une fiche pour l'agent le plus prioritaire dont le statut n'est PAS « Implémenté » : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
+Une fiche pour l'agent le plus prioritaire qui n'est PAS déjà en service (statut différent de « Couvert · agent en service ») : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
 Réponds en français, en Markdown, en 450 mots au maximum.`;
 
 // ---------- 2. Réglages par défaut des fournisseurs ----------
@@ -217,7 +221,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.53 · 17/11/2026";
+const VERSION = "v0.54 · 17/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
