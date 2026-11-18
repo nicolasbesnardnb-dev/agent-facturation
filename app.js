@@ -161,7 +161,7 @@ Format de la réponse (lue à l'écran pendant une démonstration)
 ## En bref
 3 lignes au maximum.
 ## Irritants
-Un tableau de 4 à 6 lignes, trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus) | Agent proposé | Statut. Priorité 1 = la plus haute.
+Un tableau de 5 lignes au maximum (les 5 irritants les plus prioritaires, pas plus), trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus) | Agent proposé | Statut. Priorité 1 = la plus haute.
 ## Prochain agent à construire
 Une fiche pour l'agent le plus prioritaire qui n'est PAS déjà en service (statut différent de « Couvert · agent en service ») : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
 Réponds en français, en Markdown, en 450 mots au maximum.`;
@@ -222,7 +222,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.58 · 18/11/2026";
+const VERSION = "v0.59 · 18/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
