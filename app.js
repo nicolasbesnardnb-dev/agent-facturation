@@ -169,7 +169,7 @@ Réponds en français, en Markdown, en 450 mots au maximum.`;
 // ---------- 2. Réglages par défaut des fournisseurs ----------
 const FOURNISSEURS = {
   claude: {
-    modele: "claude-opus-5-5",
+    modele: "claude-sonnet-5-5",
     adresse: "https://api.anthropic.com/v1/messages",
     modeles: "https://api.anthropic.com/v1/models?limit=100",
   },
@@ -222,7 +222,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.56 · 18/11/2026";
+const VERSION = "v0.57 · 18/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
