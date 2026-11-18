@@ -145,6 +145,7 @@ Règles
 - Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
 - Relances et mails : compte des envois, pas des lignes. Le journal note une ligne par consultant pour un seul mail : même jour, même destinataire et même objet = 1 envoi (exemple : 2 lignes du même jour pour C014 et C022 adressées au même manager = 1 relance).
 - Un seul irritant par ligne du tableau : ne regroupe pas deux sujets différents (par exemple, les exports Excel et un écart de TJM sont deux irritants distincts).
+- Colonne « Irritant » : un libellé générique et court (2 à 5 mots), lisible par un comité de direction, sans mois, sans date, sans numéro (contrat, facture, consultant) et sans nom de personne. Exemples : « CRA manquants » et non « CRA d'octobre non reçus (C014, C022) » ; « Factures rejetées » et non « Factures F-2026-00025 et 00032 rejetées ». Les précisions (mois, numéros, personnes concernées) vont dans la colonne « Fréquence constatée ». Tu restes libre de détecter n'importe quel irritant : seule la façon de le nommer est imposée.
 - Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
 - Montants : pour l'argent bloqué ou à risque, reprends exactement les montants du bloc « MONTANTS DE RÉFÉRENCE » (calculés par le programme à partir de l'onglet Rapprochement). Ne les recalcule pas et ne les additionne pas entre eux. Le chiffre d'affaires à risque faute de CRA est une estimation : écris-le « estimé ». Si aucun montant de référence ne correspond à un irritant, écris « non chiffré » plutôt que d'en inventer un.
@@ -221,7 +222,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.55 · 17/11/2026";
+const VERSION = "v0.56 · 18/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
