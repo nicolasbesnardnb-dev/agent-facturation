@@ -222,7 +222,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.57 · 18/11/2026";
+const VERSION = "v0.58 · 18/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -420,7 +420,8 @@ $("file").addEventListener("change", async (ev) => {
   }
 });
 
-function chargerClasseur(octets, nom) {
+function chargerClasseur(octets, nom, demo = false) {
+  etat.demo = demo;
   const classeur = XLSX.read(octets, { type: "array", cellDates: true });
   etat.classeur = classeur;
   etat.donneesTexte = classeurEnTexte(classeur);
@@ -656,6 +657,13 @@ $("mails").addEventListener("change", async (ev) => {
   const fichiers = Array.from(ev.target.files || []);
   if (!fichiers.length) return;
   $("mailsStatus").textContent = "Lecture des mails…";
+  etat.demo = false;
+  await lireFichiersMails(fichiers);
+  majBoutonConnexion(jetonGoogle ? "connecte" : "deconnecte");
+});
+
+// Lit des fichiers .eml ou .zip ({ name, arrayBuffer() }) et les garde comme mails de la session.
+async function lireFichiersMails(fichiers) {
   const lus = []; const erreurs = [];
   for (const f of fichiers) {
     try {
@@ -671,7 +679,7 @@ $("mails").addEventListener("change", async (ev) => {
     } catch (e) { erreurs.push(f.name); }
   }
   enregistrerMails(lus, erreurs);
-});
+}
 
 function enregistrerMails(lus, erreurs) {
   // Pas de doublon si le même mail est chargé deux fois.
@@ -722,12 +730,13 @@ function majBoutonConnexion(etatConnexion) {
   const connecte = etatConnexion !== "deconnecte";
   $("btnConnexion").textContent = connecte ? "🔌 Déconnexion" : "🔌 Connexion";
   // Bleu tant qu'aucune donnée n'est chargée : c'est la première chose à faire.
-  $("btnConnexion").classList.toggle("secondary", connecte || !!etat.classeur);
+  $("btnConnexion").classList.toggle("secondary", connecte || (!!etat.classeur && !etat.demo));
   $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées" + (PAGE === "direction" ? "" : " et la conversation")
     : PAGE === "direction" ? "Connexion avec le compte Google de la direction" : "Connexion à Gmail et Google Drive";
   let texte = "";
   if (etatConnexion === "connecte") texte = "Compte connecté : " + etat.compteGoogle;
   else if (etatConnexion === "expire") texte = "Compte connecté : " + etat.compteGoogle + " (connexion expirée)";
+  else if (etat.demo) texte = "Données de démonstration (fictives) · " + (PAGE === "direction" ? "connectez-vous pour l'historique" : "connectez-vous pour vos propres données");
   else if (etat.classeur) texte = "Fichiers chargés depuis l'ordinateur";
   $("compteEntete").textContent = texte;
 }
@@ -751,6 +760,7 @@ $("btnDeconnexion").addEventListener("click", () => {
   accesAdmin = false; montrerOnglet("agent"); // l'accès responsable est oublié aussi
   if (fb && fb.auth.currentUser) fb.auth.signOut().catch(() => {});
   fermerHistorique();
+  chargerDemo(); // la page reste utilisable avec les données de démonstration
 });
 afficherEtatGoogle("deconnecte", "Déconnecté");
 let jetonGoogle = null; // gardé en mémoire seulement (perdu en rechargeant la page), valable environ 1 heure
@@ -1542,7 +1552,7 @@ $("btnAdmin").addEventListener("click", () => {
 });
 
 $("btnDiag").addEventListener("click", async () => {
-  if (PAGE === "direction" && !adminConnecte()) return demanderAcces(() => $("btnDiag").click()); // secours hors ligne
+  if (PAGE === "direction" && !adminConnecte() && !etat.demo) return demanderAcces(() => $("btnDiag").click()); // secours hors ligne
   if (!etat.classeur) { $("diagStatus").textContent = "Connectez-vous d'abord à vos données (ou chargez l'Excel depuis l'ordinateur)."; return; }
   const zone = $("diagResultat");
   basculer(true);
@@ -1582,7 +1592,10 @@ function noteHistorique(zone, texte) {
 }
 async function enregistrerAnalyse(type, texte, conso, zone) {
   if (!fb) return; // page ouverte depuis l'ordinateur : pas d'historique
-  if (!adminConnecte()) return; // seul l'espace direction enregistre
+  if (!adminConnecte()) { // seul l'espace direction connecté enregistre
+    if (PAGE === "direction" && etat.demo) noteHistorique(zone, "Diagnostic non enregistré : données de démonstration, sans connexion de la direction.");
+    return;
+  }
   try {
     await fb.db.collection(COLLECTION).add({
       type, texte,
@@ -1677,3 +1690,33 @@ if (location.protocol === "file:") {
 
 // Au démarrage : rien n'est chargé, les boutons sont grisés.
 majBoutons();
+
+// ---------- 11. Données de démonstration (fictives), chargées par défaut ----------
+// Sans connexion Google, la page charge ces fichiers publiés à côté d'elle (dépôt GitHub public : données fictives seulement).
+// Une connexion Google ou un chargement depuis l'ordinateur les remplace.
+const DEMO = {
+  excel: "Donnees_fictives_facturation_v3.xlsx",
+  mails: ["Mails_fictifs_recus_eml.zip", "Mails_fictifs_envoyes_eml.zip"], // l'espace direction n'utilise pas les mails
+};
+async function chargerDemo() {
+  if (location.protocol === "file:" || etat.classeur) return; // hors ligne : chargement manuel ; déjà des données : on n'écrase rien
+  try {
+    const r = await fetch(DEMO.excel, { cache: "no-cache" });
+    if (!r.ok) throw new Error("fichier " + DEMO.excel + " introuvable (" + r.status + ")");
+    if (etat.classeur) return; // une connexion a été faite pendant le téléchargement
+    chargerClasseur(await r.arrayBuffer(), "données de démonstration (fictives)", true);
+    $("fileStatus").textContent = "Référentiel : données de démonstration (fictives), chargées sans connexion.";
+    if (PAGE !== "direction") {
+      const fichiers = [];
+      for (const nom of DEMO.mails) {
+        const rm = await fetch(nom, { cache: "no-cache" });
+        if (rm.ok) { const octets = await rm.arrayBuffer(); fichiers.push({ name: nom, arrayBuffer: async () => octets }); }
+      }
+      if (etat.demo && fichiers.length) await lireFichiersMails(fichiers);
+    }
+    if (etat.demo) majBoutonConnexion("deconnecte");
+  } catch (e) {
+    $("fileStatus").textContent = "Données de démonstration indisponibles (" + e.message + ") : connectez-vous ou chargez les fichiers depuis l'ordinateur.";
+  }
+}
+chargerDemo();
