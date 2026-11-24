@@ -131,15 +131,9 @@ CRA manquants : tableau Consultant | Contrat | Manager | Montant ESTIMÉ | Relan
 Commence par « En bref » en 3 lignes au maximum, sauf pour une question sans rapport avec la facturation : réponds alors en une ou deux phrases.
 Réponds en français, en Markdown, de façon factuelle et concise : 500 mots au maximum.`;
 
-// Agents déjà connus : leur statut est fixé ici, pour que l'IA ne l'invente pas.
-const AGENTS_CONNUS = [
-  { nom: "Agent facturation", statut: "Implémenté", role: "rapprochement vendu / réalisé / facturé, écarts de TJM, CRA manquants et brouillons de relance, mises à jour du référentiel validées par le chargé de facturation (page principale de cet outil)" },
-  { nom: "Agent de veille des mails facturation", statut: "Spécifié", role: "surveille la boîte du service facturation et signale les mails qui demandent une action (spécification rédigée, pas encore construit)" },
-];
-
 // Instructions de l'onglet « Diagnostic des irritants ».
 const INSTRUCTIONS_DIAGNOSTIC = `Tu es un analyste des processus du service facturation d'une société de conseil en ingénierie. Les données sont fictives (démonstration).
-Ta mission : lire toi-même les onglets du référentiel fournis (journal d'activité, factures, réalisé, contrats…), y repérer les principaux irritants du service (tâches manuelles répétitives, relances sans effet, erreurs récurrentes, validations qui traînent, charge mal répartie…) et proposer des agents d'IA pour y remédier. Personne n'a fait ce travail avant toi : c'est à toi de trouver ce qui pose problème.
+Ta mission : lire toi-même les onglets du référentiel fournis (journal d'activité, factures, réalisé, contrats…), y repérer les principaux irritants du service (tâches manuelles répétitives, relances sans effet, erreurs récurrentes, validations qui traînent, charge mal répartie…) et les classer par priorité. Personne n'a fait ce travail avant toi : c'est à toi de trouver ce qui pose problème.
 
 Règles
 - Compte toi-même, ligne par ligne, avant d'écrire un chiffre. Un même événement noté deux fois (même date, même destinataire, même objet) compte une seule fois. N'invente aucune donnée.
@@ -150,20 +144,14 @@ Règles
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
 - Montants : pour l'argent bloqué ou à risque, reprends exactement les montants du bloc « MONTANTS DE RÉFÉRENCE » (calculés par le programme à partir de l'onglet Rapprochement). Ne les recalcule pas et ne les additionne pas entre eux. Le chiffre d'affaires à risque faute de CRA est une estimation : écris-le « estimé ». Si aucun montant de référence ne correspond à un irritant, écris « non chiffré » plutôt que d'en inventer un.
 - Toute autre estimation (temps passé, par exemple) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
+- Ne propose pas d'agent d'IA et ne mentionne aucun agent existant, ni dans « En bref » ni ailleurs : décris seulement les irritants.
 - Priorité, dans cet ordre : 1) d'abord les irritants qui bloquent ou retardent la facturation, donc la trésorerie (CRA manquants, réalisé en attente de validation, bon de commande absent ou dépassé, factures rejetées), qu'ils soient chiffrés ou non ; 2) puis la fréquence constatée ; 3) puis le nombre de personnes touchées. À critère égal, le montant le plus élevé passe devant.
-- Agents déjà connus, avec un statut fixé que tu reprends exactement :
-${AGENTS_CONNUS.map((a) => `  - « ${a.nom} » — statut « ${a.statut} » — ${a.role}`).join("\n")}
-  Si un irritant est couvert par l'un d'eux, écris exactement son nom. Statut à écrire : « Couvert · agent en service » pour un agent « Implémenté » (les données analysées datent d'avant sa mise en service : l'irritant reste visible, c'est normal) ; le statut fixé pour les autres (« Spécifié »…). Sinon, propose un nouvel agent au nom court, avec le statut « Idée ».
-  Les relances restées sans réponse et les réponses qui se perdent relèvent de l'« Agent de veille des mails facturation » : cite-le pour ces irritants plutôt que d'inventer un autre agent.
-  Si au moins un irritant est couvert par un agent en service, dis-le en une phrase dans « En bref ».
 
 Format de la réponse (lue à l'écran pendant une démonstration)
 ## En bref
 3 lignes au maximum.
 ## Irritants
-Un tableau de 5 lignes au maximum (les 5 irritants les plus prioritaires, pas plus), trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus) | Agent proposé | Statut. Priorité 1 = la plus haute.
-## Prochain agent à construire
-Une fiche pour l'agent le plus prioritaire qui n'est PAS déjà en service (statut différent de « Couvert · agent en service ») : Nom ; Irritant traité ; Objectif (une phrase) ; Données utilisées ; Ce qu'il fait (3 à 5 actions) ; Garde-fous (ce qu'il ne fait jamais seul) ; Gain attendu (avec l'hypothèse) ; Statut.
+Un tableau de 5 lignes au maximum (les 5 irritants les plus prioritaires, pas plus), trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus). Priorité 1 = la plus haute.
 Réponds en français, en Markdown, en 450 mots au maximum.`;
 
 // ---------- 2. Réglages par défaut des fournisseurs ----------
@@ -222,7 +210,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.59 · 24/11/2026";
+const VERSION = "v0.60 · 24/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -1535,13 +1523,22 @@ $("formAdmin").addEventListener("submit", async (e) => {
 });
 $("adminAnnuler").addEventListener("click", () => { apresConnexion = null; $("dlgAdmin").close(); });
 
-// Sur la ligne de l'agent déjà construit : une mention (non cliquable). L'assistant est l'outil du chargé de facturation,
-// il ne s'ouvre pas depuis l'espace direction (pas de mails, référentiel en lecture seule).
-function ajouterLienAgent(zone) {
-  zone.querySelectorAll("td").forEach((td) => {
-    if (/^Agent facturation\b/i.test(td.textContent.trim()) && !td.querySelector(".mentionAgent")) {
-      td.append(document.createElement("br"), Object.assign(document.createElement("span"), { className: "hint mentionAgent", textContent: "En service · utilisé par le chargé de facturation" }));
-    }
+// v0.60 : page simplifiée. Les diagnostics enregistrés avant cette version contiennent encore
+// les colonnes « Agent proposé » / « Statut » et la fiche « Prochain agent à construire » : on les masque à l'affichage
+// (le texte enregistré dans l'historique n'est pas modifié). L'export Excel reprend le tableau affiché, donc sans ces colonnes.
+function masquerAgents(zone) {
+  zone.querySelectorAll("table").forEach((table) => {
+    const entetes = [...(table.rows[0] ? table.rows[0].cells : [])];
+    const aRetirer = entetes.map((c, i) => (/^(agent proposé|statut)$/i.test(c.textContent.trim()) ? i : -1)).filter((i) => i >= 0).reverse();
+    if (!aRetirer.length || !entetes.some((c) => /irritant/i.test(c.textContent))) return;
+    [...table.rows].forEach((tr) => aRetirer.forEach((i) => tr.cells[i] && tr.cells[i].remove()));
+  });
+  zone.querySelectorAll("h1, h2, h3").forEach((h) => {
+    if (!/prochain agent/i.test(h.textContent)) return;
+    const niveau = Number(h.tagName[1]);
+    let suivant = h.nextElementSibling;
+    while (suivant && !(/^H[1-3]$/.test(suivant.tagName) && Number(suivant.tagName[1]) <= niveau)) { const x = suivant; suivant = suivant.nextElementSibling; x.remove(); }
+    h.remove();
   });
 }
 
@@ -1565,10 +1562,10 @@ $("btnDiag").addEventListener("click", async () => {
     const texte = await appelerModele((partiel) => {
       if (zone.hidden) { zone.hidden = false; arreter("L'assistant écrit…"); }
       if (Date.now() - dernierRendu > 150) { dernierRendu = Date.now(); zone.innerHTML = DOMPurify.sanitize(marked.parse(partiel), { FORBID_TAGS: ["img"] }); }
-    }, { systeme: systemeDiagnostic(), messages: [{ role: "user", content: "Analyse les principaux irritants du service facturation et propose des agents pour y remédier." }] });
+    }, { systeme: systemeDiagnostic(), messages: [{ role: "user", content: "Analyse les principaux irritants du service facturation." }] });
     zone.innerHTML = DOMPurify.sanitize(marked.parse(texte), { FORBID_TAGS: ["img"] });
     zone.hidden = false;
-    ajouterLienAgent(zone);
+    masquerAgents(zone);
     diagAffiche = new Date(); majExportDiag();
     const conso = afficherConso("Diagnostic des irritants");
     enregistrerAnalyse("diag", texte, conso, zone);
@@ -1595,7 +1592,6 @@ function majExportDiag() {
 }
 function texteCellule(cellule) {
   const copie = cellule.cloneNode(true);
-  copie.querySelectorAll(".mentionAgent").forEach((e) => e.remove()); // mention ajoutée par la page, pas par l'IA
   copie.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
   return copie.textContent.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
 }
@@ -1656,7 +1652,7 @@ function rendreAnalyse(conteneur, a) {
   conteneur.innerHTML = DOMPurify.sanitize(marked.parse(a.texte || ""), { FORBID_TAGS: ["img"] });
   enrichirReponse(conteneur);
   conteneur.querySelectorAll(".modifs td:last-child").forEach((td) => { if (td.querySelector("button")) td.textContent = "Consultation seule"; });
-  if (a.type === "diag") ajouterLienAgent(conteneur);
+  if (a.type === "diag") masquerAgents(conteneur);
 }
 const enteteAnalyse = (a) => `${TYPES_ANALYSE[a.type] || a.type} enregistré le ${dateHeure(a.date && a.date.toDate ? a.date.toDate() : null)}`
   + (a.dateDonnees ? ` · données au ${dateFrCourte(a.dateDonnees)}` : "") + (a.modele ? ` · ${a.modele}` : "");
