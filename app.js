@@ -222,7 +222,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.59 · 18/11/2026";
+const VERSION = "v0.59 · 24/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -752,6 +752,7 @@ $("btnDeconnexion").addEventListener("click", () => {
   etat.classeur = null;
   majBoutons();
   $("diagResultat").replaceChildren(); $("diagResultat").hidden = true; $("diagStatus").textContent = "";
+  diagAffiche = null; majExportDiag();
   $("googleStatus").textContent = "Déconnecté : les données chargées et la conversation ont été effacées de la page.";
   $("fileStatus").textContent = "Aucun fichier chargé.";
   $("mailsStatus").textContent = "";
@@ -1558,6 +1559,7 @@ $("btnDiag").addEventListener("click", async () => {
   basculer(true);
   const arreter = demarrerAttente($("diagStatus"), "L'assistant analyse les traces du référentiel…");
   zone.hidden = true;
+  diagAffiche = null; majExportDiag();
   let dernierRendu = 0;
   try {
     const texte = await appelerModele((partiel) => {
@@ -1567,6 +1569,7 @@ $("btnDiag").addEventListener("click", async () => {
     zone.innerHTML = DOMPurify.sanitize(marked.parse(texte), { FORBID_TAGS: ["img"] });
     zone.hidden = false;
     ajouterLienAgent(zone);
+    diagAffiche = new Date(); majExportDiag();
     const conso = afficherConso("Diagnostic des irritants");
     enregistrerAnalyse("diag", texte, conso, zone);
     arreter("");
@@ -1577,6 +1580,39 @@ $("btnDiag").addEventListener("click", async () => {
   } finally {
     basculer(false);
   }
+});
+
+// ---------- 9 bis. Export Excel du tableau des irritants affiché ----------
+// Exporte seulement le diagnostic affiché à l'écran (pas l'historique), avec les colonnes du tableau
+// et en plus la date de l'analyse. Fonctionne aussi sans connexion (fichier créé dans le navigateur).
+let diagAffiche = null; // date de l'analyse affichée (null : aucune analyse terminée à l'écran)
+function tableauIrritants(zone) {
+  const tables = [...zone.querySelectorAll("table")];
+  return tables.find((t) => [...t.querySelectorAll("th")].some((th) => /irritant/i.test(th.textContent))) || tables[0] || null;
+}
+function majExportDiag() {
+  $("btnExportDiag").hidden = !(diagAffiche && tableauIrritants($("diagResultat")));
+}
+function texteCellule(cellule) {
+  const copie = cellule.cloneNode(true);
+  copie.querySelectorAll(".mentionAgent").forEach((e) => e.remove()); // mention ajoutée par la page, pas par l'IA
+  copie.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
+  return copie.textContent.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
+}
+$("btnExportDiag").addEventListener("click", () => {
+  const table = tableauIrritants($("diagResultat"));
+  if (!table || !diagAffiche) return;
+  const lignes = [...table.rows].map((tr) => [...tr.cells].map(texteCellule));
+  const [entete, ...corps] = lignes;
+  const dateAnalyse = dateHeure(diagAffiche);
+  const donnees = [["Date de l'analyse", ...entete], ...corps.map((l) => [dateAnalyse, ...l.map((v) => (/^\d+$/.test(v) ? Number(v) : v))])];
+  const feuille = XLSX.utils.aoa_to_sheet(donnees);
+  feuille["!cols"] = donnees[0].map((_, i) => ({ wch: Math.min(60, Math.max(12, ...donnees.map((l) => Math.max(...String(l[i] ?? "").split("\n").map((x) => x.length))))) }));
+  feuille["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: donnees.length - 1, c: donnees[0].length - 1 } }) };
+  const classeur = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(classeur, feuille, "Irritants");
+  const d = diagAffiche, n2 = (x) => String(x).padStart(2, "0");
+  XLSX.writeFile(classeur, `Diagnostic_irritants_${d.getFullYear()}-${n2(d.getMonth() + 1)}-${n2(d.getDate())}_${n2(d.getHours())}h${n2(d.getMinutes())}.xlsx`);
 });
 
 // ---------- 10. Historique des analyses (Firestore) ----------
@@ -1673,6 +1709,7 @@ async function afficherDernierDiag() {
     rendreAnalyse(contenu, dernier);
     zone.append(entete, contenu);
     zone.hidden = false;
+    diagAffiche = dernier.date && dernier.date.toDate ? dernier.date.toDate() : null; majExportDiag();
   } catch (e) { /* pas d'historique lisible : on n'affiche rien */ }
 }
 
