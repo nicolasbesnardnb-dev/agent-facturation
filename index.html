@@ -144,6 +144,71 @@
     a.bouton { display: inline-block; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; }
     .modifs td button { margin-top: 0; padding: 4px 10px; margin-right: 4px; }
     .modifs td.deja { color: var(--muted); font-style: italic; }
+
+    /* ===== Charte graphique v0.62 (reprise du Résolveur d'irritants) : style seulement =====
+       Violet profond #2A164A (bandeau, en-têtes de tableaux) · Violet principal #4B2882 (titres, actions)
+       Lavande #EDE8F5 (cartes, fonds) · Blanc #FFFFFF · Anthracite #17131C (texte) · Gris #525252 (légendes)
+       Police Aptos si elle est installée sur l'ordinateur (Windows 11 / Office), sinon Segoe UI ou police du système :
+       aucune police n'est téléchargée depuis un site externe. */
+    :root {
+      --bg: #FFFFFF; --panel: #FFFFFF; --surface2: #EDE8F5; --text: #17131C; --muted: #525252;
+      --border: #DAD2E8; --accent: #4B2882; --accent-text: #FFFFFF; --heading: #4B2882;
+      --frame: #2A164A; --frame-text: #FFFFFF; --frame-muted: #CFC4E3;
+      --user: #2A164A; --user-text: #FFFFFF; --err-bg: #FBE9E7; --err: #B3261E;
+      --radius: 14px; --shadow: 0 1px 2px rgba(42,22,74,.06), 0 10px 30px rgba(42,22,74,.10);
+      --font: "Aptos", "Aptos Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      --font-light: "Aptos Light", "Aptos", "Segoe UI Light", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #17131C; --panel: #211A2C; --surface2: #2E2440; --text: #F1EDF7; --muted: #B3ABBF;
+        --border: #3E3254; --accent: #B9A4E0; --accent-text: #1B1229; --heading: #CDBDEB;
+        --frame: #2A164A; --frame-text: #FFFFFF; --frame-muted: #CFC4E3;
+        --user: #4B2882; --user-text: #FFFFFF; --err-bg: #3A2120; --err: #F2B8B5;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.35);
+      }
+    }
+    body { font-family: var(--font); -webkit-font-smoothing: antialiased; }
+    .hint, .status, .modeleActif, .piedPage, .quick .sousCarte, .noteHist { font-family: var(--font-light); }
+    /* Bandeau du haut : violet profond, texte blanc */
+    .bandeau { background: var(--frame); color: var(--frame-text); border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); }
+    .bandeau h1 { color: var(--frame-text); }
+    .bandeau h1 svg { color: var(--frame-muted); }
+    .bandeau .sub, .bandeau .modeleActif { color: var(--frame-muted); }
+    .bandeau button { background: #FFFFFF; color: #2A164A; border-color: #FFFFFF; font-weight: 700; }
+    .bandeau button.secondary { background: transparent; color: var(--frame-text); border-color: rgba(255,255,255,.35); font-weight: 400; }
+    .bandeau button.secondary:hover { background: rgba(255,255,255,.12); }
+    .bandeau button:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+    /* Boîtes : coins arrondis, liseré violet à gauche */
+    section, details.panel { border-radius: var(--radius); border-left: 4px solid var(--accent); }
+    section h2, details > summary, .titreConso { color: var(--heading); }
+    #pageConnexion, #pageHistorique, #reglages[open] { border: none; border-radius: 0; }
+    /* Boutons et champs */
+    button { border-radius: 10px; font-weight: 700; }
+    button.secondary, button.discret { font-weight: 400; }
+    button:not(.secondary):not(.discret):not(:disabled):hover { filter: brightness(1.12); }
+    input[type=text], input[type=password], select, textarea { border-radius: 10px; background: var(--panel); }
+    a.bouton { border-radius: 10px; }
+    /* Cartes de choix : fond lavande, liseré à gauche */
+    .quick button { background: var(--surface2); border: 1px solid transparent; border-left: 4px solid var(--accent); border-radius: 12px; box-shadow: none; }
+    .quick button:not(:disabled):hover { background: var(--surface2); border-color: var(--accent); filter: none; }
+    /* Conversation */
+    .msg { border-radius: var(--radius); }
+    .msg.user { background: var(--user); color: var(--user-text); border-color: var(--user); border-radius: var(--radius) var(--radius) 4px var(--radius); }
+    .msg.user .who { color: var(--frame-muted); }
+    .msg.assistant { border-left: 4px solid var(--accent); border-radius: var(--radius) var(--radius) var(--radius) 4px; }
+    .msg.assistant h1, .msg.assistant h2, .msg.assistant h3, .msg.assistant h4 { color: var(--heading); }
+    .msg.assistant li::marker { color: var(--accent); }
+    .msg.assistant blockquote { border-left: 3px solid var(--accent); margin-left: 0; padding: .4rem .9rem; background: var(--surface2); border-radius: 0 8px 8px 0; }
+    .msg code { background: var(--surface2); border-radius: 5px; padding: .1em .35em; }
+    .brouillon { border-radius: 10px; background: var(--surface2); }
+    /* Tableaux : en-tête violet profond, une ligne sur deux en lavande */
+    th, td { padding: .45rem .6rem; }
+    th { background: var(--frame); color: var(--frame-text); border-color: var(--frame); }
+    tbody tr:nth-child(even) td { background: var(--surface2); }
+    .error, .notice { border-radius: 10px; }
+    dialog { border-radius: 20px; border-top: 6px solid #4B2882; }
+    .totaux div { border-radius: 10px; }
   </style>
 </head>
 <body>
@@ -270,7 +335,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.61 · 25/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.62 · 25/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->

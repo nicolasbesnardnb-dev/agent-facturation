@@ -42,7 +42,7 @@ MÉTHODE
 5. Propose pour chaque catégorie une piste d'amélioration (processus, référentiel, outil ou agent IA) et dis ce qu'il faudrait vérifier auprès de l'équipe.
 
 FORMAT DE RÉPONSE
-- Un tableau récapitulatif trié par fréquence puis par confiance : Catégorie (ton nom) | Fréquence | Mails concernés | Confiance | Piste d'amélioration.
+- Un tableau récapitulatif trié par fréquence puis par confiance : Catégorie (ton nom) | Fréquence | Confiance | Piste d'amélioration.
 - Puis, pour chaque catégorie :
   - une phrase qui décrit la cause ;
   - les mails concernés, chacun avec la date, l'expéditeur et un extrait court et exact (entre guillemets, sans reformuler) ;
@@ -83,7 +83,7 @@ function systemeIrritants() {
 Date du jour : ${new Date().toLocaleDateString("fr-FR")}.
 Source : ${boite}. Période demandée : tous les mails fournis ci-dessous, ${periodeMails()}.
 ${etat.mails.length} mails : ${envoyes} envoyés par la boîte, ${etat.mails.length - envoyes} reçus. Brouillons, spam, corbeille et mails envoyés par Google sont exclus${etat.mails.length >= 300 ? " ; seuls les 300 mails les plus récents ont été lus (signale-le dans les Limites)" : ""}.
-Le texte complet de chaque mail est fourni. Chaque mail porte un identifiant (M1, M2…) : utilise-le dans la colonne « Mails concernés » et devant chaque extrait, avec la date et l'expéditeur. Les fils se reconnaissent à leur objet (« Re : », « TR : »…).
+Le texte complet de chaque mail est fourni. Chaque mail porte un identifiant (M1, M2…) : utilise-le devant chaque extrait, avec la date et l'expéditeur. Ne mets pas ces identifiants dans le tableau récapitulatif, qui n'a pas de colonne de mails. Les fils se reconnaissent à leur objet (« Re : », « TR : »…).
 Les pièces jointes ne sont pas fournies : si un mail y renvoie, dis-le dans les Limites.
 Réponds en français, directement en Markdown (pas de bloc de code).`,
     "## MAILS\n" + mailsIrritantsEnTexte(),
