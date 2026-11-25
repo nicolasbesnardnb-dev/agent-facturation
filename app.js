@@ -201,16 +201,17 @@ const etat = {
   classeur: null,     // le référentiel lu (pour le diagnostic)
 };
 
-// Deux pages partagent ce fichier : l'assistant du chargé de facturation (index.html)
-// et l'espace direction (direction.html, <body data-page="direction">).
-const PAGE = document.body.dataset.page === "direction" ? "direction" : "assistant";
+// Trois pages partagent ce fichier : l'assistant du chargé de facturation (index.html),
+// l'espace direction (direction.html, <body data-page="direction">)
+// et la détection des irritants dans les mails (irritants.html, <body data-page="irritants">, complétée par irritants.js).
+const PAGE = ["direction", "irritants"].includes(document.body.dataset.page) ? document.body.dataset.page : "assistant";
 // Un élément absent de la page (par exemple la conversation, dans l'espace direction) est remplacé
 // par un élément « fantôme » invisible : le code commun fonctionne sans erreur sur les deux pages.
 const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.60 · 24/11/2026";
+const VERSION = "v0.61 · 25/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -680,6 +681,7 @@ function enregistrerMails(lus, erreurs) {
     ? `· ${etat.mails.length} mails (${envoyes} envoyés, ${etat.mails.length - envoyes} reçus) du ${new Date(Math.min(...dates)).toLocaleDateString("fr-FR").slice(0, 5)} au ${new Date(Math.max(...dates)).toLocaleDateString("fr-FR").slice(0, 5)}` + (erreurs.length ? ` · illisibles : ${erreurs.join(", ")}` : "")
     : "Aucun mail lisible dans ces fichiers." + (erreurs.length ? ` Illisibles : ${erreurs.join(", ")}.` : "");
   afficherNoticeMails();
+  document.dispatchEvent(new Event("mailsCharges")); // utilisé par la page irritants (irritants.js)
 }
 
 // ---------- 6 ter. Connexion Google (lecture seule) : Excel sur Drive + mails Gmail ----------
@@ -690,6 +692,8 @@ const NOM_EXCEL_DRIVE = "Donnees_fictives_facturation";
 const FILTRE_GMAIL = "-in:drafts -from:google.com";
 // Gmail et Drive en lecture seule ; Sheets en écriture, utilisé uniquement après un clic « Valider ».
 const PORTEES_GOOGLE = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets";
+// Page irritants : Gmail en lecture seule, rien d'autre (ni Drive, ni Sheets).
+const PORTEE_GMAIL = "https://www.googleapis.com/auth/gmail.readonly";
 const SHEET = "application/vnd.google-apps.spreadsheet";
 // Nom et prénom du compte, pour l'indicateur de connexion.
 const PORTEE_PROFIL = "https://www.googleapis.com/auth/userinfo.profile";
@@ -718,14 +722,15 @@ function majBoutonConnexion(etatConnexion) {
   const connecte = etatConnexion !== "deconnecte";
   $("btnConnexion").textContent = connecte ? "🔌 Déconnexion" : "🔌 Connexion";
   // Bleu tant qu'aucune donnée n'est chargée : c'est la première chose à faire.
-  $("btnConnexion").classList.toggle("secondary", connecte || (!!etat.classeur && !etat.demo));
-  $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées" + (PAGE === "direction" ? "" : " et la conversation")
-    : PAGE === "direction" ? "Connexion avec le compte Google de la direction" : "Connexion à Gmail et Google Drive";
+  const donneesPropres = PAGE === "irritants" ? etat.mails.length > 0 : !!etat.classeur;
+  $("btnConnexion").classList.toggle("secondary", connecte || (donneesPropres && !etat.demo));
+  $("btnConnexion").title = connecte ? "Se déconnecter : efface les données chargées" + (PAGE === "assistant" ? " et la conversation" : "")
+    : PAGE === "direction" ? "Connexion avec le compte Google de la direction" : PAGE === "irritants" ? "Connexion à Gmail (lecture seule)" : "Connexion à Gmail et Google Drive";
   let texte = "";
   if (etatConnexion === "connecte") texte = "Compte connecté : " + etat.compteGoogle;
   else if (etatConnexion === "expire") texte = "Compte connecté : " + etat.compteGoogle + " (connexion expirée)";
   else if (etat.demo) texte = "Données de démonstration (fictives) · " + (PAGE === "direction" ? "connectez-vous pour l'historique" : "connectez-vous pour vos propres données");
-  else if (etat.classeur) texte = "Fichiers chargés depuis l'ordinateur";
+  else if (donneesPropres) texte = "Fichiers chargés depuis l'ordinateur";
   $("compteEntete").textContent = texte;
 }
 
@@ -761,7 +766,7 @@ $("btnGoogle").addEventListener("click", () => {
   if (!window.google || !google.accounts) { $("googleStatus").textContent = "Le module de connexion Google n'est pas encore chargé. Réessayez dans quelques secondes."; return; }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
-    scope: PORTEES_GOOGLE + " " + PORTEE_PROFIL,
+    scope: (PAGE === "irritants" ? PORTEE_GMAIL : PORTEES_GOOGLE) + " " + PORTEE_PROFIL,
     callback: async (rep) => {
       if (rep.error) { $("googleStatus").textContent = "Connexion refusée ou annulée : " + rep.error; return; }
       jetonGoogle = rep.access_token;
@@ -811,11 +816,16 @@ async function chargerDepuisGoogle() {
   try { nom = (await google_get("https://www.googleapis.com/oauth2/v3/userinfo")).name || ""; } catch (e) { /* le nom est facultatif */ }
   nomCompteGoogle = nom || profil.emailAddress;
   afficherEtatGoogle("connecte", "Connecté · " + (nom ? `${nom} (${profil.emailAddress})` : profil.emailAddress));
-  $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Recherche du référentiel sur Drive…`;
-  await chargerReferentielDrive();
+  if (PAGE === "irritants") {
+    etat.demo = false; // les mails de démonstration seront remplacés par ceux du compte
+    $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Lecture des mails…`;
+  } else {
+    $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Recherche du référentiel sur Drive…`;
+    await chargerReferentielDrive();
+    $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Excel chargé. Lecture des mails…`;
+  }
 
   // Mails : boîte de réception et envoyés, sans corbeille, spam, brouillons ni mails de Google.
-  $("googleStatus").textContent = `Connecté à ${profil.emailAddress}. Excel chargé. Lecture des mails…`;
   const ids = []; let page = "";
   do {
     const r = await google_get(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${encodeURIComponent(FILTRE_GMAIL)}${page ? "&pageToken=" + page : ""}`);
@@ -1732,6 +1742,7 @@ const DEMO = {
   mails: ["Mails_fictifs_recus_eml.zip", "Mails_fictifs_envoyes_eml.zip"], // l'espace direction n'utilise pas les mails
 };
 async function chargerDemo() {
+  if (PAGE === "irritants") return chargerMailsDemo();
   if (location.protocol === "file:" || etat.classeur) return; // hors ligne : chargement manuel ; déjà des données : on n'écrase rien
   try {
     const r = await fetch(DEMO.excel, { cache: "no-cache" });
@@ -1750,6 +1761,24 @@ async function chargerDemo() {
     if (etat.demo) majBoutonConnexion("deconnecte");
   } catch (e) {
     $("fileStatus").textContent = "Données de démonstration indisponibles (" + e.message + ") : connectez-vous ou chargez les fichiers depuis l'ordinateur.";
+  }
+}
+// Page irritants : seulement les mails de démonstration (pas d'Excel).
+async function chargerMailsDemo() {
+  if (location.protocol === "file:" || etat.mails.length) return;
+  etat.demo = true;
+  try {
+    const fichiers = [];
+    for (const nom of DEMO.mails) {
+      const rm = await fetch(nom, { cache: "no-cache" });
+      if (rm.ok) { const octets = await rm.arrayBuffer(); fichiers.push({ name: nom, arrayBuffer: async () => octets }); }
+    }
+    if (!fichiers.length) throw new Error("fichiers " + DEMO.mails.join(", ") + " introuvables");
+    if (etat.demo && !etat.mails.length) await lireFichiersMails(fichiers); // une connexion a pu être faite pendant le téléchargement
+    if (etat.demo) { $("fileStatus").textContent = "Mails de démonstration (fictifs), chargés sans connexion."; majBoutonConnexion("deconnecte"); }
+  } catch (e) {
+    etat.demo = false;
+    $("fileStatus").textContent = "Mails de démonstration indisponibles (" + e.message + ") : connectez-vous ou chargez les mails depuis l'ordinateur.";
   }
 }
 chargerDemo();
