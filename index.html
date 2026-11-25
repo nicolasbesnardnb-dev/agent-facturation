@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Assistant facturation</title>
+  <!-- Polices de la charte (Google Fonts) : Figtree et JetBrains Mono. Sans connexion, la page utilise les polices du système. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400&display=swap">
   <!-- Icône d'onglet : dessin original (facture avec le signe euro) -->
   <link rel="icon" type="image/png" href="data:image/png;base64,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">
   <style>
@@ -145,70 +149,103 @@
     .modifs td button { margin-top: 0; padding: 4px 10px; margin-right: 4px; }
     .modifs td.deja { color: var(--muted); font-style: italic; }
 
-    /* ===== Charte graphique v0.62 (reprise du Résolveur d'irritants) : style seulement =====
-       Violet profond #2A164A (bandeau, en-têtes de tableaux) · Violet principal #4B2882 (titres, actions)
-       Lavande #EDE8F5 (cartes, fonds) · Blanc #FFFFFF · Anthracite #17131C (texte) · Gris #525252 (légendes)
-       Police Aptos si elle est installée sur l'ordinateur (Windows 11 / Office), sinon Segoe UI ou police du système :
-       aucune police n'est téléchargée depuis un site externe. */
-    :root {
-      --bg: #FFFFFF; --panel: #FFFFFF; --surface2: #EDE8F5; --text: #17131C; --muted: #525252;
-      --border: #DAD2E8; --accent: #4B2882; --accent-text: #FFFFFF; --heading: #4B2882;
-      --frame: #2A164A; --frame-text: #FFFFFF; --frame-muted: #CFC4E3;
-      --user: #2A164A; --user-text: #FFFFFF; --err-bg: #FBE9E7; --err: #B3261E;
-      --radius: 14px; --shadow: 0 1px 2px rgba(42,22,74,.06), 0 10px 30px rgba(42,22,74,.10);
-      --font: "Aptos", "Aptos Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-      --font-light: "Aptos Light", "Aptos", "Segoe UI Light", "Segoe UI", system-ui, -apple-system, sans-serif;
+    /* ===== Charte graphique v0.64 : thème sombre unique (style seulement) =====
+       Fonds : page #110826 · panneaux #1A0F36 · éléments dans un panneau #231545 · bordures #352558
+       Marque : violet #4B2882 · lavande #B9A6E0 (titres de panneau) · lavande claire #D9C9FF
+                bleu ciel #9ED8E2 (accent, « en direct ») · bleu ciel profond #5FB7C6
+                dégradé du mot clé #9ED8E2 → #D9C9FF · dégradé des barres #4B2882 → #9ED8E2
+       Texte et états : principal #F2EEFA · secondaire #A99DC6 · friction #FF8A95 · validé #6FD6A8
+                vigilance #F3B65B · écarté ou désactivé #6D6290
+       Polices : Georgia gras (message clé) · Figtree (le reste) · JetBrains Mono 11,5 px (adresses mail, heures).
+       Figtree et JetBrains Mono viennent de Google Fonts (lien dans <head>) ; sans connexion, polices de repli du système. */
+    :root, :root:not([data-theme="charte"]) {
+      --fond: #110826; --panel: #1A0F36; --element: #231545; --border: #352558;
+      --violet: #4B2882; --lavande: #B9A6E0; --lavandeClaire: #D9C9FF; --ciel: #9ED8E2; --cielProfond: #5FB7C6;
+      --text: #F2EEFA; --muted: #A99DC6; --friction: #FF8A95; --valide: #6FD6A8; --vigilance: #F3B65B; --desactive: #6D6290;
+      --degradeMot: linear-gradient(90deg, #9ED8E2, #D9C9FF); --degradeBarre: linear-gradient(90deg, #4B2882, #9ED8E2);
+      /* variables déjà utilisées par la page, recâblées sur la charte */
+      --bg: var(--fond); --accent: var(--violet); --accent-text: var(--text); --user: var(--violet);
+      --warn-bg: rgba(243,182,91,.12); --warn: var(--vigilance); --err-bg: rgba(255,138,149,.12); --err: var(--friction);
+      --ok-bg: rgba(111,214,168,.12); --ok: var(--valide);
+      --radius: 14px; --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --font: "Figtree", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+      --mono: "JetBrains Mono", Consolas, "Cascadia Mono", ui-monospace, monospace;
+      color-scheme: dark;
     }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #17131C; --panel: #211A2C; --surface2: #2E2440; --text: #F1EDF7; --muted: #B3ABBF;
-        --border: #3E3254; --accent: #B9A4E0; --accent-text: #1B1229; --heading: #CDBDEB;
-        --frame: #2A164A; --frame-text: #FFFFFF; --frame-muted: #CFC4E3;
-        --user: #4B2882; --user-text: #FFFFFF; --err-bg: #3A2120; --err: #F2B8B5;
-        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.35);
-      }
-    }
-    body { font-family: var(--font); -webkit-font-smoothing: antialiased; }
-    .hint, .status, .modeleActif, .piedPage, .quick .sousCarte, .noteHist { font-family: var(--font-light); }
-    /* Bandeau du haut : violet profond, texte blanc */
-    .bandeau { background: var(--frame); color: var(--frame-text); border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); }
-    .bandeau h1 { color: var(--frame-text); }
-    .bandeau h1 svg { color: var(--frame-muted); }
-    .bandeau .sub, .bandeau .modeleActif { color: var(--frame-muted); }
-    .bandeau button { background: #FFFFFF; color: #2A164A; border-color: #FFFFFF; font-weight: 700; }
-    .bandeau button.secondary { background: transparent; color: var(--frame-text); border-color: rgba(255,255,255,.35); font-weight: 400; }
-    .bandeau button.secondary:hover { background: rgba(255,255,255,.12); }
-    .bandeau button:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
-    /* Boîtes : coins arrondis, liseré violet à gauche */
-    section, details.panel { border-radius: var(--radius); border-left: 4px solid var(--accent); }
-    section h2, details > summary, .titreConso { color: var(--heading); }
-    #pageConnexion, #pageHistorique, #reglages[open] { border: none; border-radius: 0; }
-    /* Boutons et champs */
-    button { border-radius: 10px; font-weight: 700; }
-    button.secondary, button.discret { font-weight: 400; }
-    button:not(.secondary):not(.discret):not(:disabled):hover { filter: brightness(1.12); }
-    input[type=text], input[type=password], select, textarea { border-radius: 10px; background: var(--panel); }
-    a.bouton { border-radius: 10px; }
-    /* Cartes de choix : fond lavande, liseré à gauche */
-    .quick button { background: var(--surface2); border: 1px solid transparent; border-left: 4px solid var(--accent); border-radius: 12px; box-shadow: none; }
-    .quick button:not(:disabled):hover { background: var(--surface2); border-color: var(--accent); filter: none; }
-    /* Conversation */
-    .msg { border-radius: var(--radius); }
-    .msg.user { background: var(--user); color: var(--user-text); border-color: var(--user); border-radius: var(--radius) var(--radius) 4px var(--radius); }
-    .msg.user .who { color: var(--frame-muted); }
-    .msg.assistant { border-left: 4px solid var(--accent); border-radius: var(--radius) var(--radius) var(--radius) 4px; }
-    .msg.assistant h1, .msg.assistant h2, .msg.assistant h3, .msg.assistant h4 { color: var(--heading); }
-    .msg.assistant li::marker { color: var(--accent); }
-    .msg.assistant blockquote { border-left: 3px solid var(--accent); margin-left: 0; padding: .4rem .9rem; background: var(--surface2); border-radius: 0 8px 8px 0; }
-    .msg code { background: var(--surface2); border-radius: 5px; padding: .1em .35em; }
-    .brouillon { border-radius: 10px; background: var(--surface2); }
-    /* Tableaux : en-tête violet profond, une ligne sur deux en lavande */
-    th, td { padding: .45rem .6rem; }
-    th { background: var(--frame); color: var(--frame-text); border-color: var(--frame); }
-    tbody tr:nth-child(even) td { background: var(--surface2); }
-    .error, .notice { border-radius: 10px; }
-    dialog { border-radius: 20px; border-top: 6px solid #4B2882; }
-    .totaux div { border-radius: 10px; }
+    body { background: var(--fond); color: var(--text); font-family: var(--font); font-weight: 400; -webkit-font-smoothing: antialiased; }
+    a { color: var(--ciel); }
+    ::selection { background: var(--violet); color: var(--text); }
+    .hint, .status, .modeleActif, .piedPage, .quick .sousCarte, .noteHist, .sub { color: var(--muted); }
+    /* Message clé : titre de la page en Georgia gras, mot clé en dégradé */
+    h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 30px; line-height: 1.2; color: var(--text); }
+    .motCle { background: var(--degradeMot); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    @media (max-width: 600px) { h1 { font-size: 24px; } }
+    h1 svg { color: var(--ciel); }
+    /* Bandeau du haut : panneau, avec une barre en dégradé dessous */
+    .bandeau { background: var(--panel); color: var(--text); border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); box-shadow: var(--shadow); position: relative; }
+    .bandeau::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--degradeBarre); border-radius: 0 0 var(--radius) var(--radius); }
+    @media (min-width: 700px) and (min-height: 560px) { .bandeau { position: sticky; } }
+    .bandeau .sub, .bandeau .modeleActif { color: var(--muted); }
+    /* Panneaux : fond #1A0F36, bordure #352558, barre en dégradé à gauche */
+    section, details.panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+    #vueAgent > section, #vueDiag > section, #vueIrritants > section, details.panel:not(#reglages) { position: relative; overflow: hidden; }
+    #vueAgent > section::before, #vueDiag > section::before, #vueIrritants > section::before, details.panel:not(#reglages)::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, #4B2882, #9ED8E2); }
+    #pageConnexion, #pageHistorique, #reglages[open] { background: var(--fond); border: none; border-radius: 0; }
+    section h2, details > summary, .titreConso, dialog h2 { color: var(--lavande); font-weight: 700; }
+    /* Petits titres en capitales (12 px, Figtree 700) */
+    th, .msg .who { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    /* Boutons */
+    button { border-radius: 10px; font-family: var(--font); font-weight: 600; background: var(--violet); color: var(--text); border: 1px solid var(--violet); }
+    button.secondary { background: transparent; color: var(--lavande); border-color: var(--border); font-weight: 500; }
+    button.secondary:not(:disabled):hover { background: var(--element); }
+    button.discret { background: transparent; border-color: transparent; color: var(--muted); }
+    button:not(.secondary):not(.discret):not(:disabled):hover { filter: brightness(1.2); }
+    button:disabled, .quick button:disabled { opacity: 1; color: var(--desactive); border-color: var(--border); background: var(--element); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--ciel); outline-offset: 2px; }
+    .bandeau button { margin-top: 0; }
+    /* Champs et éléments dans un panneau */
+    input[type=text], input[type=password], select, textarea { background: var(--element); color: var(--text); border: 1px solid var(--border); border-radius: 10px; }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    .quick button { background: var(--element); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: none; }
+    .quick button:not(:disabled):hover { background: var(--element); border-color: var(--ciel); filter: none; }
+    .quick .titreCarte { color: var(--text); }
+    /* Conversation et réponses */
+    .msg { border-radius: var(--radius); border: 1px solid var(--border); }
+    .msg.user { background: var(--violet); color: var(--text); border-color: var(--violet); border-radius: var(--radius) var(--radius) 4px var(--radius); }
+    .msg.user .who { color: var(--lavandeClaire); }
+    .msg.assistant { background: var(--panel); border-left: 4px solid var(--ciel); border-radius: var(--radius) var(--radius) var(--radius) 4px; }
+    .msg .who { color: var(--muted); }
+    .msg.assistant h1, .msg.assistant h2, .msg.assistant h3, .msg.assistant h4 { color: var(--lavande); font-family: var(--font); font-size: 1.08rem; font-weight: 700; }
+    .msg.assistant strong { color: var(--text); font-weight: 700; }
+    .msg.assistant li::marker { color: var(--ciel); }
+    .msg.assistant blockquote { border-left: 3px solid var(--ciel); margin-left: 0; padding: .4rem .9rem; background: var(--element); border-radius: 0 8px 8px 0; }
+    .msg code, code { font-family: var(--mono); font-size: 11.5px; background: var(--element); border-radius: 5px; padding: .1em .35em; }
+    .brouillon { border: 1px dashed var(--border); border-radius: 10px; background: var(--element); }
+    a.bouton { border-radius: 10px; color: var(--ciel); border-color: var(--cielProfond); }
+    /* Tableaux */
+    table { color: var(--text); }
+    th, td { border: 1px solid var(--border); padding: .45rem .6rem; }
+    th { background: var(--element); color: var(--lavande); }
+    tbody tr:nth-child(even) td { background: rgba(35,21,69,.55); }
+    /* Grands chiffres (Figtree 900) */
+    .totaux div { border: 1px solid var(--border); border-radius: 10px; background: var(--element); }
+    .totaux b { font-weight: 900; font-size: 1.6rem; color: var(--text); }
+    /* Adresses mail et heures : JetBrains Mono 11,5 px */
+    #compteEntete, #etatGoogle, #consoListe td:first-child, #histListe td:first-child, .entreeHist { font-family: var(--mono); font-size: 11.5px; }
+    /* États : en direct (bleu ciel), validé, vigilance, friction, désactivé */
+    .badge.deconnecte { background: var(--element); color: var(--desactive); border: 1px solid var(--border); }
+    .badge.connecte { background: rgba(158,216,226,.12); color: var(--ciel); }
+    .badge.expire { background: var(--warn-bg); color: var(--vigilance); }
+    .attente::before { background: var(--ciel); }
+    .notice { background: var(--warn-bg); color: var(--vigilance); border-radius: 10px; }
+    .error { background: var(--err-bg); color: var(--friction); border-radius: 10px; }
+    .simule { background: var(--warn-bg); color: var(--vigilance); }
+    .version.decalee { color: var(--vigilance); }
+    .modifs td.deja { color: var(--desactive); }
+    dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-top: 4px solid var(--ciel); border-radius: 20px; }
+    dialog::backdrop { background: rgba(17,8,38,.75); }
+    #pageConnexion .ok, #pageHistorique .ok, #reglages .ok { background: var(--fond); border-top: 1px solid var(--border); }
   </style>
 </head>
 <body>
@@ -223,7 +260,7 @@
       <path d="M11 13h7M11 17h5"/>
       <path d="M12 23l3 3 6-7"/>
     </svg>
-    Assistant du service facturation
+    <span>Assistant du service <span class="motCle">facturation</span></span>
   </h1>
   <div class="boutonsEntete">
     <button id="btnConnexion" title="Connexion à Gmail et Google Drive">🔌 Connexion</button>
@@ -335,7 +372,7 @@
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.63 · 25/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.64 · 25/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
