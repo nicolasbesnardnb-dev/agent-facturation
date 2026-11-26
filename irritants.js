@@ -35,14 +35,11 @@ MÉTHODE
 1. Parcours les mails et relève chaque signal avec : identifiant ou date du mail, expéditeur, objet, phrase courte qui le montre.
 2. Écarte les faux positifs et garde ceux qui ont un coût et une cause.
 3. Regroupe les signaux par cause commune et donne à chaque groupe un nom court que tu choisis toi-même, qui décrit la cause (pas le symptôme). Ne force pas un mail dans un groupe : un irritant vu une seule fois peut rester seul.
-4. Pour chaque catégorie, compte la fréquence (nombre de mails distincts) et attribue un niveau de confiance :
-   - Élevé : plusieurs mails, ou un mail où le coût et la cause sont explicites ;
-   - Moyen : un seul mail clair, ou plusieurs mails ambigus ;
-   - Faible : interprétation possible, à confirmer par l'équipe.
+4. Pour chaque catégorie, compte l'occurrence (nombre de mails distincts).
 5. Propose pour chaque catégorie une piste d'amélioration (processus, référentiel, outil ou agent IA) et dis ce qu'il faudrait vérifier auprès de l'équipe.
 
 FORMAT DE RÉPONSE
-- Un tableau récapitulatif trié par fréquence puis par confiance : Catégorie (ton nom) | Fréquence | Confiance | Piste d'amélioration.
+- Un tableau récapitulatif trié par occurrence décroissante : Catégorie (ton nom) | Occurrence | Piste d'amélioration. Pas d'autre colonne (en particulier, pas de colonne de confiance).
 - Puis, pour chaque catégorie :
   - une phrase qui décrit la cause ;
   - les mails concernés, chacun avec la date, l'expéditeur et un extrait court et exact (entre guillemets, sans reformuler) ;
@@ -51,7 +48,7 @@ FORMAT DE RÉPONSE
 - Une section « Limites » : ce que les mails ne permettent pas de dire (fréquence réelle, causes à confirmer, mails absents).
 
 RÈGLES
-- N'invente rien. Chaque catégorie s'appuie sur au moins un extrait réel de mail. Si tu doutes, baisse la confiance et dis-le.
+- N'invente rien. Chaque catégorie s'appuie sur au moins un extrait réel de mail. Si tu doutes, dis-le dans le détail de la catégorie.
 - Cite exactement : l'extrait doit se retrouver mot pour mot dans le mail.
 - Ne compte pas deux fois le même problème quand un fil le répète : compte les mails qui apportent un signal nouveau, et précise-le.
 - N'exprime pas de jugement sur les personnes : un irritant décrit un fonctionnement, pas un coupable.
