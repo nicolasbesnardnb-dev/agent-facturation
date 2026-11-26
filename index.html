@@ -325,7 +325,7 @@
       <span id="etatGoogle" class="badge deconnecte" role="status"></span>
       <button id="btnDeconnexion" class="secondary" hidden>Se déconnecter</button>
     </div>
-    <p class="hint">Gmail en lecture seule : l'assistant ne peut ni envoyer, ni supprimer, ni modifier un mail. Le référentiel n'est modifié qu'après votre clic « Valider ».</p>
+    <p class="hint">Gmail en lecture seule : l'assistant ne peut ni envoyer, ni supprimer, ni modifier un mail. Les données ERP ne sont modifiées qu'après votre clic « Valider ».</p>
     <div class="status" id="googleStatus"></div>
     <div class="status"><span id="fileStatus">Aucun fichier chargé.</span> <span id="mailsStatus"></span></div>
     <p class="notice" id="mailsNotice">Mails : aucun chargé. L'agent le signalera en tête de réponse et travaillera à partir du fichier Excel seul.</p>
@@ -349,7 +349,7 @@
     <div class="quick" style="margin-top:12px">
       <button id="btnPoint"><span class="titreCarte">Faire le point du jour</span><span class="sousCarte">Écarts à traiter, causes et relances prêtes</span></button>
       <button id="btnCRA"><span class="titreCarte">Relancer les CRA manquants</span><span class="sousCarte">CRA non reçus, montant à risque et relances groupées</span></button>
-      <button id="btnRegles"><span class="titreCarte">Mettre à jour le référentiel</span><span class="sousCarte">Changements indiqués dans les mails, à valider</span></button>
+      <button id="btnRegles"><span class="titreCarte">Mettre à jour les données ERP</span><span class="sousCarte">Changements indiqués dans les mails, à valider</span></button>
     </div>
     <p class="hint aideDonnees">Connectez-vous à vos données pour utiliser l'assistant.</p>
     <label for="question">Poser une question à l'assistant</label>
@@ -367,12 +367,12 @@
   <!-- Contrôles calculés par le programme, sans IA : les chiffres de référence que l'agent reprend -->
   <details class="panel" id="factsSection" hidden>
     <summary>Vérifier les chiffres (calculés par le programme, sans IA)</summary>
-    <p class="hint">D'après le référentiel seul, avant lecture des mails. L'agent reprend ces montants sans les recalculer et explique ce que les mails changent.</p>
+    <p class="hint">D'après les données ERP seules, avant lecture des mails. L'agent reprend ces montants sans les recalculer et explique ce que les mails changent.</p>
     <div class="totaux" id="factsResume"></div>
     <div class="scroll" id="facts"></div>
   </details>
   </div>
-  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.64 · 25/11/2026</span></p>
+  <p class="piedPage" id="piedPage">Données fictives, créées pour la démonstration<span class="version" id="version">v0.65 · 26/11/2026</span></p>
 </main>
 
 <!-- Bibliothèques : lecture Excel, mise en forme des réponses, nettoyage du HTML -->
