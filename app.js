@@ -211,7 +211,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.66 · 26/11/2026";
+const VERSION = "v0.67 · 27/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -1592,10 +1592,13 @@ $("btnDiag").addEventListener("click", async () => {
 // ---------- 9 bis. Export Excel du tableau des irritants affiché ----------
 // Exporte seulement le diagnostic affiché à l'écran (pas l'historique), avec les colonnes du tableau
 // et en plus la date de l'analyse. Fonctionne aussi sans connexion (fichier créé dans le navigateur).
+// Sert aussi à la page irritants.html (même bouton btnExportDiag, même zone diagResultat) : irritants.js
+// renseigne diagAffiche à la fin de l'analyse des mails.
 let diagAffiche = null; // date de l'analyse affichée (null : aucune analyse terminée à l'écran)
 function tableauIrritants(zone) {
   const tables = [...zone.querySelectorAll("table")];
-  return tables.find((t) => [...t.querySelectorAll("th")].some((th) => /irritant/i.test(th.textContent))) || tables[0] || null;
+  const motEntete = PAGE === "irritants" ? /catégorie/i : /irritant/i; // page des mails : tableau « Catégorie | Occurrence | Piste »
+  return tables.find((t) => [...t.querySelectorAll("th")].some((th) => motEntete.test(th.textContent))) || tables[0] || null;
 }
 function majExportDiag() {
   $("btnExportDiag").hidden = !(diagAffiche && tableauIrritants($("diagResultat")));
@@ -1616,9 +1619,9 @@ $("btnExportDiag").addEventListener("click", () => {
   feuille["!cols"] = donnees[0].map((_, i) => ({ wch: Math.min(60, Math.max(12, ...donnees.map((l) => Math.max(...String(l[i] ?? "").split("\n").map((x) => x.length))))) }));
   feuille["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: donnees.length - 1, c: donnees[0].length - 1 } }) };
   const classeur = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(classeur, feuille, "Irritants");
+  XLSX.utils.book_append_sheet(classeur, feuille, PAGE === "irritants" ? "Irritants mails" : "Irritants");
   const d = diagAffiche, n2 = (x) => String(x).padStart(2, "0");
-  XLSX.writeFile(classeur, `Diagnostic_irritants_${d.getFullYear()}-${n2(d.getMonth() + 1)}-${n2(d.getDate())}_${n2(d.getHours())}h${n2(d.getMinutes())}.xlsx`);
+  XLSX.writeFile(classeur, `${PAGE === "irritants" ? "Irritants_mails" : "Diagnostic_irritants"}_${d.getFullYear()}-${n2(d.getMonth() + 1)}-${n2(d.getDate())}_${n2(d.getHours())}h${n2(d.getMinutes())}.xlsx`);
 });
 
 // ---------- 10. Historique des analyses (Firestore) ----------

@@ -110,6 +110,7 @@ $("btnIrritants").addEventListener("click", async () => {
   analyseEnCours = true; majPageIrritants();
   const arreter = demarrerAttente($("diagStatus"), `L'assistant lit ${etat.mails.length} mails…`);
   zone.hidden = true;
+  diagAffiche = null; majExportDiag(); // bouton « Exporter en Excel » (code commun dans app.js, section 9 bis)
   let dernierRendu = 0;
   try {
     const texte = await appelerModele((partiel) => {
@@ -118,6 +119,7 @@ $("btnIrritants").addEventListener("click", async () => {
     }, { systeme: systemeIrritants(), messages: [{ role: "user", content: `Analyse les irritants de l'équipe à partir de tous les mails fournis (${periodeMails()}).` }] });
     zone.innerHTML = DOMPurify.sanitize(marked.parse(texte), { FORBID_TAGS: ["img"] });
     zone.hidden = false;
+    diagAffiche = new Date(); majExportDiag();
     afficherConso("Irritants dans les mails");
     arreter("");
   } catch (e) {
