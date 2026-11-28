@@ -140,7 +140,7 @@ Règles
 - Relances et mails : compte des envois, pas des lignes. Le journal note une ligne par consultant pour un seul mail : même jour, même destinataire et même objet = 1 envoi (exemple : 2 lignes du même jour pour C014 et C022 adressées au même manager = 1 relance).
 - Un seul irritant par ligne du tableau : ne regroupe pas deux sujets différents (par exemple, les exports Excel et un écart de TJM sont deux irritants distincts).
 - Colonne « Irritant » : un libellé générique et court (2 à 5 mots), lisible par un comité de direction, sans mois, sans date, sans numéro (contrat, facture, consultant) et sans nom de personne. Exemples : « CRA manquants » et non « CRA d'octobre non reçus (C014, C022) » ; « Factures rejetées » et non « Factures F-2026-00025 et 00032 rejetées ». Les précisions (mois, numéros, personnes concernées) vont dans la colonne « Fréquence constatée ». Tu restes libre de détecter n'importe quel irritant : seule la façon de le nommer est imposée.
-- Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le.
+- Pour chaque chiffre, indique sur quoi il repose : l'onglet et le critère (exemple : « 17 relances : lignes du Journal_activité dont l'action contient "Relance", doublons du même jour retirés »). Si tu n'es pas sûr d'un comptage, dis-le dans la cellule concernée du tableau.
 - Tu n'as pas les mails : tu sais qu'une relance a eu lieu, pas si quelqu'un a répondu. Ne présume pas des réponses.
 - Montants : pour l'argent bloqué ou à risque, reprends exactement les montants du bloc « MONTANTS DE RÉFÉRENCE » (calculés par le programme à partir de l'onglet Rapprochement). Ne les recalcule pas et ne les additionne pas entre eux. Le chiffre d'affaires à risque faute de CRA est une estimation : écris-le « estimé ». Si aucun montant de référence ne correspond à un irritant, écris « non chiffré » plutôt que d'en inventer un.
 - Toute autre estimation (temps passé, par exemple) est présentée comme une hypothèse explicite, terminée par « à confirmer ». Exemple : « 12 exports × 30 min (hypothèse, à confirmer) = 6 h sur 3 mois ».
@@ -152,6 +152,7 @@ Format de la réponse (lue à l'écran pendant une démonstration)
 3 lignes au maximum.
 ## Irritants
 Un tableau de 5 lignes au maximum (les 5 irritants les plus prioritaires, pas plus), trié par priorité : Priorité | Irritant | Fréquence constatée (et source) | Qui est touché | Impact (montant de référence ou « non chiffré ») | Pourquoi cette priorité (8 mots au plus). Priorité 1 = la plus haute.
+Rien après le tableau : pas de section « Points non tranchés », « Points à vérifier » ou « Limites ».
 Réponds en français, en Markdown, en 450 mots au maximum.`;
 
 // ---------- 2. Réglages par défaut des fournisseurs ----------
@@ -211,7 +212,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.68 · 28/11/2026";
+const VERSION = "v0.69 · 28/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -1533,6 +1534,7 @@ $("formAdmin").addEventListener("submit", async (e) => {
 });
 $("adminAnnuler").addEventListener("click", () => { apresConnexion = null; $("dlgAdmin").close(); });
 
+// v0.69 : même traitement pour une éventuelle section finale « Points non tranchés » (titre ou paragraphe en gras).
 // v0.60 : page simplifiée. Les diagnostics enregistrés avant cette version contiennent encore
 // les colonnes « Agent proposé » / « Statut » et la fiche « Prochain agent à construire » : on les masque à l'affichage
 // (le texte enregistré dans l'historique n'est pas modifié). L'export Excel reprend le tableau affiché, donc sans ces colonnes.
@@ -1543,8 +1545,13 @@ function masquerAgents(zone) {
     if (!aRetirer.length || !entetes.some((c) => /irritant/i.test(c.textContent))) return;
     [...table.rows].forEach((tr) => aRetirer.forEach((i) => tr.cells[i] && tr.cells[i].remove()));
   });
+  zone.querySelectorAll("p").forEach((p) => { // « **Points non tranchés** » écrit en gras au lieu d'un titre : retiré avec ce qui suit
+    const g = p.firstElementChild;
+    if (!g || g.tagName !== "STRONG" || !/^\s*points? non tranch/i.test(p.textContent)) return;
+    let x = p; while (x) { const n = x.nextElementSibling; if (n && /^H[1-3]$/.test(n.tagName)) { x.remove(); break; } x.remove(); x = n; }
+  });
   zone.querySelectorAll("h1, h2, h3").forEach((h) => {
-    if (!/prochain agent/i.test(h.textContent)) return;
+    if (!/prochain agent|non tranch/i.test(h.textContent)) return;
     const niveau = Number(h.tagName[1]);
     let suivant = h.nextElementSibling;
     while (suivant && !(/^H[1-3]$/.test(suivant.tagName) && Number(suivant.tagName[1]) <= niveau)) { const x = suivant; suivant = suivant.nextElementSibling; x.remove(); }
