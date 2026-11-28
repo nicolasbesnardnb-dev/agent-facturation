@@ -94,9 +94,9 @@ function majPageIrritants() {
   $("btnIrritants").disabled = analyseEnCours || !n;
   $("btnIrritants").title = n ? "" : "Connectez-vous d'abord à Gmail ou chargez des mails";
   $("aideIrritants").hidden = n > 0;
-  const envoyes = etat.mails.filter(mailEnvoye).length;
+  // v0.70 : seul le total est affiché (détail envoyés/reçus retiré à la demande de Nicolas).
   $("irrMails").textContent = !n ? ""
-    : `${etat.demo ? "Mails de démonstration (fictifs)" : etat.compteGoogle ? "Boîte " + etat.compteGoogle : "Mails chargés depuis l'ordinateur"} : ${n} mails (${envoyes} envoyés, ${n - envoyes} reçus) ${periodeMails()}.`
+    : `${etat.demo ? "Mails de démonstration (fictifs)" : etat.compteGoogle ? "Boîte " + etat.compteGoogle : "Mails chargés depuis l'ordinateur"} : ${n} mails ${periodeMails()}.`
       + ($("provider").value === "groq" ? " Attention : avec Groq gratuit, l'envoi de tous les mails dépassera probablement sa limite de 8 000 tokens par minute. Choisissez Claude." : "");
 }
 document.addEventListener("mailsCharges", majPageIrritants);

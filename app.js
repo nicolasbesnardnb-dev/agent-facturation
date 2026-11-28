@@ -212,7 +212,7 @@ const fantomes = {};
 const $ = (id) => document.getElementById(id) || (fantomes[id] = fantomes[id] || document.createElement(id === "consoListe" || id === "histListe" ? "table" : "div"));
 
 // Numéro de version : à changer à chaque mise en ligne, ici ET dans index.html (span id="version").
-const VERSION = "v0.69 · 28/11/2026";
+const VERSION = "v0.70 · 28/11/2026";
 // Si les deux fichiers ne portent pas le même numéro, l'un des deux est une ancienne version gardée en cache.
 if ($("piedPage")) $("piedPage").title = "Version " + VERSION; // lisible au survol du pied de page
 if ($("version") && $("version").textContent.trim() !== VERSION) {
@@ -676,10 +676,11 @@ function enregistrerMails(lus, erreurs) {
   const vus = new Set();
   etat.mails = lus.filter((m) => { const cle = m.id || (m.date + m.objet + m.de); if (vus.has(cle)) return false; vus.add(cle); return true; })
     .sort((a, b) => (a.horodatage || 0) - (b.horodatage || 0));
+  // v0.70 : sur la page irritants, seul le total de mails est affiché (pas le détail envoyés/reçus).
   const envoyes = etat.mails.filter((m) => /Service facturation/i.test(m.de)).length;
   const dates = etat.mails.filter((m) => m.horodatage).map((m) => m.horodatage);
   $("mailsStatus").textContent = etat.mails.length
-    ? `· ${etat.mails.length} mails (${envoyes} envoyés, ${etat.mails.length - envoyes} reçus) du ${new Date(Math.min(...dates)).toLocaleDateString("fr-FR").slice(0, 5)} au ${new Date(Math.max(...dates)).toLocaleDateString("fr-FR").slice(0, 5)}` + (erreurs.length ? ` · illisibles : ${erreurs.join(", ")}` : "")
+    ? `· ${etat.mails.length} mails${PAGE === "irritants" ? "" : ` (${envoyes} envoyés, ${etat.mails.length - envoyes} reçus)`} du ${new Date(Math.min(...dates)).toLocaleDateString("fr-FR").slice(0, 5)} au ${new Date(Math.max(...dates)).toLocaleDateString("fr-FR").slice(0, 5)}` + (erreurs.length ? ` · illisibles : ${erreurs.join(", ")}` : "")
     : "Aucun mail lisible dans ces fichiers." + (erreurs.length ? ` Illisibles : ${erreurs.join(", ")}.` : "");
   afficherNoticeMails();
   document.dispatchEvent(new Event("mailsCharges")); // utilisé par la page irritants (irritants.js)
